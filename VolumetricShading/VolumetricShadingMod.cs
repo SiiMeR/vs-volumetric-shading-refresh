@@ -137,8 +137,8 @@ namespace volumetricshadingupdated.VolumetricShading
 		private void PatchGame()
 		{
 			Mod.Logger.Event("Loading harmony for patching...");
-			Harmony.DEBUG = true;
-			_harmony = new Harmony("com.xxmicloxx.vsvolumetricshading");
+			Harmony.DEBUG = Debug;
+			_harmony = new Harmony(Mod.Info.ModID);
 			_harmony.PatchAll();
 			foreach (MethodBase method in _harmony.GetPatchedMethods())
 			{

@@ -4,6 +4,9 @@
         <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
         <OutputPath>bin\$(Configuration)\Mods\mod</OutputPath>
     </PropertyGroup>
+    <PropertyGroup>
+        <PathMap>$(MSBuildProjectDirectory)=.</PathMap>
+    </PropertyGroup>
     <ItemGroup>
         <Reference Include="YamlDotNet">
             <HintPath>YamlDotNet.dll</HintPath>
