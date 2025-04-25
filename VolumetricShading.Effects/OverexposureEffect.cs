@@ -32,7 +32,7 @@ public class OverexposureEffect
 
     public void OnRenderSun(ShaderProgramStandard shader)
     {
-        ((ShaderProgramBase)shader).Uniform("extraOutGlow", (float)_currentBloom * 0.01f);
+        ((ShaderProgramBase)shader)?.Uniform("extraOutGlow", _currentBloom * 0.01f);
     }
 
     public void OnRenderedSun()

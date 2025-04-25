@@ -91,8 +91,11 @@ internal class SunMoonPatches
         }
     }
 
-    public static void RenderCallsite(ShaderProgramStandard standard)
+    private static void RenderCallsite(ShaderProgramStandard shader)
     {
-        VolumetricShadingMod.Instance.Events.EmitPreSunRender(standard);
+        if (shader != null && shader.HasUniform("extraOutGlow"))
+        {
+            VolumetricShadingMod.Instance.Events.EmitPreSunRender(shader);
+        }
     }
 }

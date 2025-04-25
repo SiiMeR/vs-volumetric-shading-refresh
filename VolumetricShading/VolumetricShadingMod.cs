@@ -92,8 +92,8 @@ namespace volumetricshadingupdated.VolumetricShading
 		// Token: 0x060000EC RID: 236 RVA: 0x00002B1D File Offset: 0x00000D1D
 		public override void StartClientSide(ICoreClientAPI api)
 		{
-			PatchGame();
 			RegisterHotkeys();
+			PatchGame();
 		}
 
 		// Token: 0x060000ED RID: 237 RVA: 0x000052B0 File Offset: 0x000034B0
