@@ -21,23 +21,32 @@ internal class SunMoonPatches
     [HarmonyPatch("OnRenderFrame3D")]
     [HarmonyTranspiler]
     public static IEnumerable<CodeInstruction> RenderTranspiler(IEnumerable<CodeInstruction> instructions,
-        ILGenerator generator)
+        ILGenerator gen)
     {
-        bool found = false;
-        foreach (CodeInstruction instruction in instructions)
-        {
-            yield return instruction;
-            if (CodeInstructionExtensions.Calls(instruction, StandardShaderTextureSetter))
-            {
-                yield return new CodeInstruction(OpCodes.Dup, (object)null);
-                yield return new CodeInstruction(OpCodes.Call, (object)RenderCallsiteMethod);
-                found = true;
-            }
-        }
+        // we’ll need a temp local to hold the duplicate
+        LocalBuilder shaderLocal = gen.DeclareLocal(typeof(ShaderProgramStandard));
 
-        if (!found)
+        foreach (var ins in instructions)
         {
-            throw new Exception("Could not patch RenderPostprocessingEffects!");
+            if (CodeInstructionExtensions.Calls(ins, StandardShaderTextureSetter))
+            {
+                // Stack right now:  ShaderProgramStandard  (shader)   int (texture unit)
+
+                yield return new CodeInstruction(OpCodes.Dup);                  // dup int
+                yield return new CodeInstruction(OpCodes.Pop);                  // discard duplicated int
+                yield return new CodeInstruction(OpCodes.Dup);                  // dup shader
+                yield return new CodeInstruction(OpCodes.Stloc, shaderLocal);   // save copy -> local
+                //    (stack unchanged:  shader  int)
+            }
+
+            yield return ins;   // original instruction – the property setter consumes shader+int
+
+            if (CodeInstructionExtensions.Calls(ins, StandardShaderTextureSetter))
+            {
+                // after the call the stack is empty → load our saved shader and call the hook
+                yield return new CodeInstruction(OpCodes.Ldloc, shaderLocal);
+                yield return new CodeInstruction(OpCodes.Call, RenderCallsiteMethod);
+            }
         }
     }
 

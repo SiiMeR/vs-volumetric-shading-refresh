@@ -19,10 +19,10 @@
 #    float glow = 0.0;
 #    outColor = applyOverexposedFogAndShadow(texColor, fogAmount, normal, 1.0, intensity, vertexPosition, fogDensityIn, glow);
 
-- type: token
-  filename: chunkopaque.fsh
-  tokens: float glow = 0;
-  content: ''
+#- type: token
+#  filename: chunkopaque.fsh
+#  tokens: float glow = 0;
+#  content: ''
 
 - type: start
   filename: chunktopsoil.fsh
@@ -105,10 +105,10 @@
 #    float glow = 0.0;
 #    outColor = applyOverexposedFogAndShadowFlat(outColor, fogAmount, normal, worldPos.xyz, fogDensityIn, glow);
 
-- type: token
-  filename: standard.fsh
-  tokens: float glow = 0;
-  content: ''
+#- type: token
+#  filename: standard.fsh
+#  tokens: float glow = 0;
+#  content: ''
 
 - type: token
   filename: standard.fsh

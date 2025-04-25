@@ -5,73 +5,75 @@ using System.Reflection.Emit;
 using HarmonyLib;
 using Vintagestory.Client.NoObf;
 
-namespace volumetricshadingupdated.VolumetricShading;
-
-[HarmonyPatch(typeof(SystemRenderShadowMap))]
-internal class SystemRenderShadowMapPatches
+namespace volumetricshadingupdated.VolumetricShading
 {
-    private static readonly MethodInfo OnRenderShadowNearBaseWidthCallsiteMethod;
-
-    private static readonly MethodInfo PrepareForShadowRenderingMethod;
-
-    [HarmonyPatch("OnRenderShadowNear")]
-    [HarmonyTranspiler]
-    public static IEnumerable<CodeInstruction> OnRenderShadowNearBaseWidthTranspiler(
-        IEnumerable<CodeInstruction> instructions)
+    /// <summary>
+    /// • Replaces the literal 16f → 32f in PrepareForShadowRendering
+    /// • Calls GetNearShadowBaseWidth() every frame (value is discarded)
+    /// </summary>
+    [HarmonyPatch(typeof(SystemRenderShadowMap), "OnRenderShadowNear")]
+    internal static class SystemRenderShadowMapPatches
     {
-        bool injected = false;
-        foreach (CodeInstruction ins in instructions)
+        // --------------------------------------------------------------------
+        //  TRANSPILER
+        // --------------------------------------------------------------------
+        static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> source)
         {
-            if (!injected && ins.opcode == OpCodes.Ret)
+            // Copy to list so we can insert/replace
+            var codes = new List<CodeInstruction>(source);
+
+            //-----------------------------------------------------------------
+            // 1) Replace ldc.r4 16f  →  32f
+            //-----------------------------------------------------------------
+            bool replaced = false;
+            for (int i = 0; i < codes.Count; i++)
             {
-                yield return new CodeInstruction(OpCodes.Ldarg_0, (object)null);
-                yield return new CodeInstruction(OpCodes.Call, (object)OnRenderShadowNearBaseWidthCallsiteMethod);
-                injected = true;
+                var c = codes[i];
+                if (c.opcode == OpCodes.Ldc_R4 &&
+                    c.operand is float f && Math.Abs(f - 16f) < 0.0001f)
+                {
+                    codes[i] = new CodeInstruction(OpCodes.Ldc_R4, 32f);
+                    replaced = true;
+                    break;                        // only touch the first
+                }
             }
+            if (!replaced)
+                throw new Exception("Could not find 16f constant to patch.");
 
-            yield return ins;
-        }
+            //-----------------------------------------------------------------
+            // 2) Inject our call *right after* PrepareForShadowRendering(...)
+            //-----------------------------------------------------------------
+            var prepareMI = typeof(SystemRenderShadowMap)
+                            .GetMethod("PrepareForShadowRendering",
+                                       BindingFlags.Instance | BindingFlags.NonPublic);
 
-        if (!injected)
-        {
-            throw new Exception("Failed to patch OnRenderShadowNear – no 'ret' found.");
-        }
-    }
+            var callsiteMI = AccessTools.Method(typeof(SystemRenderShadowMapPatches),
+                                                nameof(GetNearShadowBaseWidth));
 
-    public static int OnRenderShadowNearBaseWidthCallsite()
-    {
-        return VolumetricShadingMod.Instance.ShadowTweaks.NearShadowBaseWidth;
-    }
-
-    [HarmonyPatch("OnRenderShadowNear")]
-    [HarmonyTranspiler]
-    public static IEnumerable<CodeInstruction> OnRenderShadowNearZExtend(IEnumerable<CodeInstruction> instructions)
-    {
-        bool patched = false;
-        foreach (CodeInstruction instruction in instructions)
-        {
-            if (!patched && instruction.opcode == OpCodes.Ldc_R4 && (float)instruction.operand == 16f)
+            bool injected = false;
+            for (int i = 0; i < codes.Count; i++)
             {
-                yield return new CodeInstruction(OpCodes.Ldc_R4, (object)32f);
-                patched = true;
+                if (codes[i].Calls(prepareMI))
+                {
+                    // insert after the call → i+1
+                    codes.Insert(++i, new CodeInstruction(OpCodes.Call, callsiteMI));
+                    codes.Insert(++i, new CodeInstruction(OpCodes.Pop)); // discard int
+                    injected = true;
+                    break;
+                }
             }
-            else
-            {
-                yield return instruction;
-            }
+            if (!injected)
+                throw new Exception("Could not find PrepareForShadowRendering call to inject after.");
+
+            return codes;
         }
 
-        if (!patched)
+        //----------------------------------------------------------------------
+        //  Helper that fetches the value you want; result is currently unused
+        //----------------------------------------------------------------------
+        private static int GetNearShadowBaseWidth()
         {
-            throw new Exception("Couldn't find 16f argument to patch.");
+            return VolumetricShadingMod.Instance.ShadowTweaks.NearShadowBaseWidth;
         }
-    }
-
-    static SystemRenderShadowMapPatches()
-    {
-        OnRenderShadowNearBaseWidthCallsiteMethod =
-            typeof(SystemRenderShadowMapPatches).GetMethod("OnRenderShadowNearBaseWidthCallsite");
-        PrepareForShadowRenderingMethod = typeof(SystemRenderShadowMap).GetMethod("PrepareForShadowRendering",
-            BindingFlags.Instance | BindingFlags.NonPublic);
     }
 }

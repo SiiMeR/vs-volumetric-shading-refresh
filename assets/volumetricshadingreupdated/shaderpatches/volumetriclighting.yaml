@@ -9,6 +9,12 @@
     
     #define VOLUMETRIC_SSAO_DECLINE 0.5f
 
+- type: start
+  filename: entityanimated.fsh
+  content: |
+    #define VOLUMETRIC_SSAO_DECLINE 0.5f
+
+
 - type: end
   filename: fogandlight.fsh
   snippet: volumetricscatter.txt
@@ -79,9 +85,9 @@
   tokens: vec4(camPos.xyz, fogAmount * 2 + glowLevel + murkiness);
   content: vec4(camPos.xyz, fogAmount * 2 + glowLevel + godrayLevel * VOLUMETRIC_SSAO_DECLINE + murkiness);
 
-- type: start
-  filename: chunkopaque.vsh
-  snippet: volumetriclightposition.txt
+#- type: start
+#  filename: chunkopaque.vsh
+#  snippet: volumetriclightposition.txt
 
 - type: token
   filename: chunkopaque.vsh
@@ -295,12 +301,7 @@
 - type: start
   filename: instanced.fsh
   content: |
-    in vec4 worldPos;
     uniform float fogDensityIn;
-
-- type: start
-  filename: instanced.vsh
-  content: out vec4 worldPos;
 
 #- type: token
 #  filename: instanced.vsh

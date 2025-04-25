@@ -16,7 +16,7 @@ public static class ReflectionHelper
 
     public static ClientPlatformAbstract GetClientPlatformAbstract(this ClientMain client)
     {
-        FieldInfo field = typeof(ClientMain).GetField("Platform", BindingFlags.Instance | BindingFlags.NonPublic);
+        FieldInfo field = typeof(ClientMain).GetField("Platform", BindingFlags.Instance | BindingFlags.Public);
         ClientPlatformAbstract clientPlatformAbstract =
             (ClientPlatformAbstract)((field != null) ? field.GetValue(client) : null);
         if (clientPlatformAbstract == null)
