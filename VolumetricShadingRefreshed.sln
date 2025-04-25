@@ -2,7 +2,7 @@
 Microsoft Visual Studio Solution File, Format Version 12.00
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CakeBuild", "VolumetricShadingRefreshed\CakeBuild\CakeBuild.csproj", "{233CEB67-1868-45A2-B35C-BB54AEB512D3}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "VolumetricShadingRefreshed", "VolumetricShadingRefreshed\VolumetricShadingRefreshed\volumetricshadingupdated.csproj", "{5F74146D-A5BD-496B-8999-DD0C5AA9FA39}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "VolumetricShadingRefreshed", "VolumetricShadingRefreshed\VolumetricShadingRefreshed\VolumetricShadingRefreshed.csproj", "{5F74146D-A5BD-496B-8999-DD0C5AA9FA39}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
