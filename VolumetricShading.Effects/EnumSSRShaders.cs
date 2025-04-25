@@ -1,12 +1,12 @@
-namespace VolumetricShading.Effects;
+namespace volumetricshadingupdated.VolumetricShading.Effects;
 
 public enum EnumSSRShaders
 {
-	Liquid,
-	Opaque,
-	Transparent,
-	Topsoil,
-	Out,
-	Caustics,
-	Count
+    Liquid,
+    Opaque,
+    Transparent,
+    Topsoil,
+    Out,
+    Caustics,
+    Count
 }

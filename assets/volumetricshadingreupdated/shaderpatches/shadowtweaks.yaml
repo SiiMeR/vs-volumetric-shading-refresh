@@ -39,10 +39,10 @@
 
 - type: token
   filename: fogandlight.fsh
-  tokens: float totalNear = 0.0;
+  tokens: float totalNear = 9.0;
   content: |
     #if VSMOD_SOFTSHADOWS > 0
-    float totalNear = 1.0;
+    float totalNear = 9.0;
     if (shadowCoordsNear.z < 0.999 && shadowCoordsNear.w > 0) {
         totalNear = 1.0 - vsmod_pcss(shadowCoordsNear.xyz);
     }

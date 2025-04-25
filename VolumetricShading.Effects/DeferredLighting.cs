@@ -1,207 +1,225 @@
-using System;
 using System.Collections.Generic;
-using System.Runtime.CompilerServices;
 using OpenTK.Graphics.OpenGL;
-using OpenTK.Mathematics;
-using OpenTK.Windowing.Desktop;
 using Vintagestory.API.Client;
-using Vintagestory.API.Common;
 using Vintagestory.API.Util;
 using Vintagestory.Client.NoObf;
-using VolumetricShading.Patch;
+using volumetricshadingupdated.VolumetricShading.Patch;
 
-namespace VolumetricShading.Effects;
-
-public class DeferredLighting
+namespace volumetricshadingupdated.VolumetricShading.Effects
 {
-	private readonly VolumetricShadingMod _mod;
+    // Token: 0x0200003D RID: 61
+    public class DeferredLighting
+    {
+        // Token: 0x060001AD RID: 429 RVA: 0x000071F8 File Offset: 0x000053F8
+        public DeferredLighting(VolumetricShadingMod mod)
+        {
+            this._mod = mod;
+            this._platform = this._mod.CApi.GetClientPlatformWindows();
+            this._mod.CApi.Settings.AddWatcher<bool>("volumetricshading_deferredLighting",
+                new OnSettingsChanged<bool>(this.OnDeferredLightingChanged));
+            this._mod.CApi.Settings.AddWatcher<int>("ssaoQuality",
+                new OnSettingsChanged<int>(this.OnSSAOQualityChanged));
+            this._enabled = ModSettings.DeferredLightingEnabled;
+            this._mod.CApi.Event.RegisterRenderer(new DeferredLightingPreparer(this), EnumRenderStage.Opaque,
+                "vsmod-deferred-lighting-prepare");
+            this._mod.CApi.Event.RegisterRenderer(new DeferredLightingRenderer(this), EnumRenderStage.Opaque,
+                "vsmod-deferred-lighting");
+            this._mod.ShaderInjector.RegisterBoolProperty("VSMOD_DEFERREDLIGHTING", () => this._enabled);
+            this._mod.CApi.Event.ReloadShader += this.OnReloadShaders;
+            this._mod.Events.RebuildFramebuffers += this.SetupFramebuffers;
+            this.SetupFramebuffers(this._platform.FrameBuffers);
+        }
 
-	private readonly ClientPlatformWindows _platform;
+        // Token: 0x060001AE RID: 430 RVA: 0x000035CB File Offset: 0x000017CB
+        private void OnDeferredLightingChanged(bool enabled)
+        {
+            this._enabled = enabled;
+            if (enabled && ClientSettings.SSAOQuality == 0)
+            {
+                ClientSettings.SSAOQuality = 1;
+            }
+        }
 
-	private ShaderProgram _shader;
+        // Token: 0x060001AF RID: 431 RVA: 0x000035E4 File Offset: 0x000017E4
+        private void OnSSAOQualityChanged(int quality)
+        {
+            if (quality == 0 && this._enabled)
+            {
+                ModSettings.DeferredLightingEnabled = false;
+                this._platform.RebuildFrameBuffers();
+                this._mod.CApi.Shader.ReloadShaders();
+            }
+        }
 
-	private FrameBufferRef _frameBuffer;
+        // Token: 0x060001B0 RID: 432 RVA: 0x00007330 File Offset: 0x00005530
+        private bool OnReloadShaders()
+        {
+            bool success = true;
+            ShaderProgram shader = this._shader;
+            if (shader != null)
+            {
+                shader.Dispose();
+            }
 
-	private MeshRef _screenQuad;
+            this._shader = (ShaderProgram)this._mod.RegisterShader("deferredlighting", ref success);
+            return success;
+        }
 
-	private bool _enabled;
+        // Token: 0x060001B1 RID: 433 RVA: 0x00007370 File Offset: 0x00005570
+        private void SetupFramebuffers(List<FrameBufferRef> mainBuffers)
+        {
+            if (this._frameBuffer != null)
+            {
+                this._platform.DisposeFrameBuffer(this._frameBuffer, true);
+                this._frameBuffer = null;
+            }
 
-	public DeferredLighting(VolumetricShadingMod mod)
-	{
-		//IL_00f4: Unknown result type (might be due to invalid IL or missing references)
-		//IL_00fe: Expected O, but got Unknown
-		_mod = mod;
-		_platform = _mod.CApi.GetClientPlatformWindows();
-		_mod.CApi.Settings.AddWatcher<bool>("volumetricshading_deferredLighting", (OnSettingsChanged<bool>)OnDeferredLightingChanged);
-		_mod.CApi.Settings.AddWatcher<int>("ssaoQuality", (OnSettingsChanged<int>)OnSSAOQualityChanged);
-		_enabled = ModSettings.DeferredLightingEnabled;
-		_mod.CApi.Event.RegisterRenderer((IRenderer)(object)new DeferredLightingPreparer(this), (EnumRenderStage)1, "vsmod-deferred-lighting-prepare");
-		_mod.CApi.Event.RegisterRenderer((IRenderer)(object)new DeferredLightingRenderer(this), (EnumRenderStage)1, "vsmod-deferred-lighting");
-		_mod.ShaderInjector.RegisterBoolProperty("VSMOD_DEFERREDLIGHTING", () => _enabled);
-		_mod.CApi.Event.ReloadShader += new ActionBoolReturn(OnReloadShaders);
-		_mod.Events.RebuildFramebuffers += SetupFramebuffers;
-		SetupFramebuffers(((ClientPlatformAbstract)_platform).FrameBuffers);
-	}
+            if (ClientSettings.SSAOQuality <= 0 || !this._enabled)
+            {
+                return;
+            }
 
-	private void OnDeferredLightingChanged(bool enabled)
-	{
-		_enabled = enabled;
-		if (enabled && ClientSettings.SSAOQuality == 0)
-		{
-			ClientSettings.SSAOQuality = 1;
-		}
-	}
+            FrameBufferRef fbPrimary = mainBuffers[0];
+            int fbWidth = (int)((float)this._platform.window.Bounds.Size.X * ClientSettings.SSAA);
+            int fbHeight = (int)((float)this._platform.window.Bounds.Size.Y * ClientSettings.SSAA);
+            if (fbWidth == 0 || fbHeight == 0)
+            {
+                return;
+            }
 
-	private void OnSSAOQualityChanged(int quality)
-	{
-		if (quality == 0 && _enabled)
-		{
-			ModSettings.DeferredLightingEnabled = false;
-			((ClientPlatformAbstract)_platform).RebuildFrameBuffers();
-			_mod.CApi.Shader.ReloadShaders();
-		}
-	}
+            FrameBufferRef frameBufferRef = new FrameBufferRef();
+            frameBufferRef.FboId = GL.GenFramebuffer();
+            frameBufferRef.Width = fbWidth;
+            frameBufferRef.Height = fbHeight;
+            frameBufferRef.ColorTextureIds = ArrayUtil.CreateFilled<int>(2, (int _) => GL.GenTexture());
+            FrameBufferRef fb = frameBufferRef;
+            GL.BindFramebuffer(FramebufferTarget.Framebuffer, fb.FboId);
+            GL.FramebufferTexture2D(FramebufferTarget.Framebuffer, FramebufferAttachment.DepthAttachment,
+                TextureTarget.Texture2D, fbPrimary.DepthTextureId, 0);
+            fb.SetupColorTexture(0);
+            fb.SetupColorTexture(1);
+            GL.FramebufferTexture2D(FramebufferTarget.Framebuffer, FramebufferAttachment.ColorAttachment2,
+                TextureTarget.Texture2D, fbPrimary.ColorTextureIds[2], 0);
+            GL.FramebufferTexture2D(FramebufferTarget.Framebuffer, FramebufferAttachment.ColorAttachment3,
+                TextureTarget.Texture2D, fbPrimary.ColorTextureIds[3], 0);
+            GL.DrawBuffers(4, new DrawBuffersEnum[]
+            {
+                DrawBuffersEnum.ColorAttachment0,
+                DrawBuffersEnum.ColorAttachment1,
+                DrawBuffersEnum.ColorAttachment2,
+                DrawBuffersEnum.ColorAttachment3
+            });
+            Framebuffers.CheckStatus();
+            this._frameBuffer = fb;
+            this._screenQuad = this._platform.GetScreenQuad();
+        }
 
-	private bool OnReloadShaders()
-	{
-		//IL_0026: Unknown result type (might be due to invalid IL or missing references)
-		//IL_0030: Expected O, but got Unknown
-		bool success = true;
-		ShaderProgram shader = _shader;
-		if (shader != null)
-		{
-			((ShaderProgramBase)shader).Dispose();
-		}
-		_shader = (ShaderProgram)_mod.RegisterShader("deferredlighting", ref success);
-		return success;
-	}
+        // Token: 0x060001B2 RID: 434 RVA: 0x00003618 File Offset: 0x00001818
+        public void OnBeginRender()
+        {
+            if (this._frameBuffer == null)
+            {
+                return;
+            }
 
-	private void SetupFramebuffers(List<FrameBufferRef> mainBuffers)
-	{
-		//IL_0047: Unknown result type (might be due to invalid IL or missing references)
-		//IL_004c: Unknown result type (might be due to invalid IL or missing references)
-		//IL_0050: Unknown result type (might be due to invalid IL or missing references)
-		//IL_006e: Unknown result type (might be due to invalid IL or missing references)
-		//IL_0073: Unknown result type (might be due to invalid IL or missing references)
-		//IL_0077: Unknown result type (might be due to invalid IL or missing references)
-		//IL_0091: Unknown result type (might be due to invalid IL or missing references)
-		//IL_0096: Unknown result type (might be due to invalid IL or missing references)
-		//IL_00a1: Unknown result type (might be due to invalid IL or missing references)
-		//IL_00a8: Unknown result type (might be due to invalid IL or missing references)
-		//IL_00af: Unknown result type (might be due to invalid IL or missing references)
-		//IL_00db: Expected O, but got Unknown
-		if (_frameBuffer != null)
-		{
-			((ClientPlatformAbstract)_platform).DisposeFrameBuffer(_frameBuffer, true);
-			_frameBuffer = null;
-		}
-		if (ClientSettings.SSAOQuality <= 0 || !_enabled)
-		{
-			return;
-		}
-		FrameBufferRef val = mainBuffers[0];
-		Box2i bounds = ((NativeWindow)_platform.window).Bounds;
-		int num = (int)((float)((Box2i)(ref bounds)).Size.X * ClientSettings.SSAA);
-		bounds = ((NativeWindow)_platform.window).Bounds;
-		int num2 = (int)((float)((Box2i)(ref bounds)).Size.Y * ClientSettings.SSAA);
-		if (num != 0 && num2 != 0)
-		{
-			FrameBufferRef val2 = new FrameBufferRef
-			{
-				FboId = GL.GenFramebuffer(),
-				Width = num,
-				Height = num2,
-				ColorTextureIds = ArrayUtil.CreateFilled<int>(2, (fillCallback<int>)((int _) => GL.GenTexture()))
-			};
-			GL.BindFramebuffer((FramebufferTarget)36160, val2.FboId);
-			GL.FramebufferTexture2D((FramebufferTarget)36160, (FramebufferAttachment)36096, (TextureTarget)3553, val.DepthTextureId, 0);
-			val2.SetupColorTexture(0);
-			val2.SetupColorTexture(1);
-			GL.FramebufferTexture2D((FramebufferTarget)36160, (FramebufferAttachment)36066, (TextureTarget)3553, val.ColorTextureIds[2], 0);
-			GL.FramebufferTexture2D((FramebufferTarget)36160, (FramebufferAttachment)36067, (TextureTarget)3553, val.ColorTextureIds[3], 0);
-			DrawBuffersEnum[] array = new DrawBuffersEnum[4];
-			RuntimeHelpers.InitializeArray(array, (RuntimeFieldHandle)/*OpCode not supported: LdMemberToken*/);
-			GL.DrawBuffers(4, (DrawBuffersEnum[])(object)array);
-			Framebuffers.CheckStatus();
-			_frameBuffer = val2;
-			_screenQuad = _platform.GetScreenQuad();
-		}
-	}
+            this._platform.LoadFrameBuffer(this._frameBuffer);
+            GL.Clear(ClearBufferMask.DepthBufferBit | ClearBufferMask.ColorBufferBit);
+        }
 
-	public void OnBeginRender()
-	{
-		if (_frameBuffer != null)
-		{
-			((ClientPlatformAbstract)_platform).LoadFrameBuffer(_frameBuffer);
-			GL.Clear((ClearBufferMask)16640);
-		}
-	}
+        // Token: 0x060001B3 RID: 435 RVA: 0x00007500 File Offset: 0x00005700
+        public void OnEndRender()
+        {
+            if (this._frameBuffer == null)
+            {
+                return;
+            }
 
-	public void OnEndRender()
-	{
-		if (_frameBuffer != null)
-		{
-			((ClientPlatformAbstract)_platform).LoadFrameBuffer((EnumFrameBuffer)0);
-			GL.ClearBuffer((ClearBuffer)6144, 0, new float[4] { 0f, 0f, 0f, 1f });
-			GL.ClearBuffer((ClearBuffer)6144, 1, new float[4] { 0f, 0f, 0f, 1f });
-			IRenderAPI render = _mod.CApi.Render;
-			DefaultShaderUniforms shaderUniforms = render.ShaderUniforms;
-			Uniforms uniforms = _mod.Uniforms;
-			FrameBufferRef frameBuffer = _frameBuffer;
-			FrameBufferRef val = ((ClientPlatformAbstract)_platform).FrameBuffers[0];
-			((ClientPlatformAbstract)_platform).GlDisableDepthTest();
-			((ClientPlatformAbstract)_platform).GlToggleBlend(false, (EnumBlendMode)0);
-			GL.DrawBuffers(2, (DrawBuffersEnum[])(object)new DrawBuffersEnum[2]
-			{
-				(DrawBuffersEnum)36064,
-				(DrawBuffersEnum)36065
-			});
-			ShaderProgram shader = _shader;
-			((ShaderProgramBase)shader).Use();
-			((ShaderProgramBase)shader).BindTexture2D("gDepth", val.DepthTextureId);
-			((ShaderProgramBase)shader).BindTexture2D("gNormal", val.ColorTextureIds[2]);
-			((ShaderProgramBase)shader).BindTexture2D("inColor", frameBuffer.ColorTextureIds[0]);
-			((ShaderProgramBase)shader).BindTexture2D("inGlow", frameBuffer.ColorTextureIds[1]);
-			((ShaderProgramBase)shader).UniformMatrix("invProjectionMatrix", uniforms.InvProjectionMatrix);
-			((ShaderProgramBase)shader).UniformMatrix("invModelViewMatrix", uniforms.InvModelViewMatrix);
-			((ShaderProgramBase)shader).Uniform("dayLight", uniforms.DayLight);
-			((ShaderProgramBase)shader).Uniform("sunPosition", shaderUniforms.SunPosition3D);
-			if (ShaderProgramBase.shadowmapQuality > 0)
-			{
-				((ShaderProgramBase)shader).Uniform("shadowRangeFar", shaderUniforms.ShadowRangeFar);
-				((ShaderProgramBase)shader).Uniform("shadowRangeNear", shaderUniforms.ShadowRangeNear);
-				((ShaderProgramBase)shader).UniformMatrix("toShadowMapSpaceMatrixFar", shaderUniforms.ToShadowMapSpaceMatrixFar);
-				((ShaderProgramBase)shader).UniformMatrix("toShadowMapSpaceMatrixNear", shaderUniforms.ToShadowMapSpaceMatrixNear);
-			}
-			((ShaderProgramBase)shader).Uniform("fogDensityIn", render.FogDensity);
-			((ShaderProgramBase)shader).Uniform("fogMinIn", render.FogMin);
-			((ShaderProgramBase)shader).Uniform("rgbaFog", render.FogColor);
-			((ShaderProgramBase)shader).Uniform("flatFogDensity", shaderUniforms.FlagFogDensity);
-			((ShaderProgramBase)shader).Uniform("flatFogStart", shaderUniforms.FlatFogStartYPos - shaderUniforms.PlayerPos.Y);
-			((ShaderProgramBase)shader).Uniform("viewDistance", ClientSettings.ViewDistance);
-			((ShaderProgramBase)shader).Uniform("viewDistanceLod0", (float)ClientSettings.ViewDistance * ClientSettings.LodBias);
-			_platform.RenderFullscreenTriangle(_screenQuad);
-			((ShaderProgramBase)shader).Stop();
-			((ClientPlatformAbstract)_platform).CheckGlError("Error while calculating deferred lighting");
-			DrawBuffersEnum[] array = new DrawBuffersEnum[4];
-			RuntimeHelpers.InitializeArray(array, (RuntimeFieldHandle)/*OpCode not supported: LdMemberToken*/);
-			GL.DrawBuffers(4, (DrawBuffersEnum[])(object)array);
-			((ClientPlatformAbstract)_platform).GlEnableDepthTest();
-		}
-	}
+            this._platform.LoadFrameBuffer(EnumFrameBuffer.Primary);
+            GL.ClearBuffer(ClearBuffer.Color, 0, new float[] { 0f, 0f, 0f, 1f });
+            GL.ClearBuffer(ClearBuffer.Color, 1, new float[] { 0f, 0f, 0f, 1f });
+            IRenderAPI render = this._mod.CApi.Render;
+            DefaultShaderUniforms uniforms = render.ShaderUniforms;
+            Uniforms myUniforms = this._mod.Uniforms;
+            FrameBufferRef fb = this._frameBuffer;
+            FrameBufferRef fbPrimary = this._platform.FrameBuffers[0];
+            this._platform.GlDisableDepthTest();
+            this._platform.GlToggleBlend(false, EnumBlendMode.Standard);
+            GL.DrawBuffers(2, new DrawBuffersEnum[]
+            {
+                DrawBuffersEnum.ColorAttachment0,
+                DrawBuffersEnum.ColorAttachment1
+            });
+            ShaderProgram s = this._shader;
+            s.Use();
+            s.BindTexture2D("gDepth", fbPrimary.DepthTextureId);
+            s.BindTexture2D("gNormal", fbPrimary.ColorTextureIds[2]);
+            s.BindTexture2D("inColor", fb.ColorTextureIds[0]);
+            s.BindTexture2D("inGlow", fb.ColorTextureIds[1]);
+            s.UniformMatrix("invProjectionMatrix", myUniforms.InvProjectionMatrix);
+            s.UniformMatrix("invModelViewMatrix", myUniforms.InvModelViewMatrix);
+            s.Uniform("dayLight", myUniforms.DayLight);
+            s.Uniform("sunPosition", uniforms.SunPosition3D);
+            if (ShaderProgramBase.shadowmapQuality > 0)
+            {
+                s.Uniform("shadowRangeFar", uniforms.ShadowRangeFar);
+                s.Uniform("shadowRangeNear", uniforms.ShadowRangeNear);
+                s.UniformMatrix("toShadowMapSpaceMatrixFar", uniforms.ToShadowMapSpaceMatrixFar);
+                s.UniformMatrix("toShadowMapSpaceMatrixNear", uniforms.ToShadowMapSpaceMatrixNear);
+            }
 
-	public void Dispose()
-	{
-		ShaderProgram shader = _shader;
-		if (shader != null)
-		{
-			((ShaderProgramBase)shader).Dispose();
-		}
-		_shader = null;
-		if (_frameBuffer != null)
-		{
-			((ClientPlatformAbstract)_platform).DisposeFrameBuffer(_frameBuffer, true);
-			_frameBuffer = null;
-		}
-	}
+            s.Uniform("fogDensityIn", render.FogDensity);
+            s.Uniform("fogMinIn", render.FogMin);
+            s.Uniform("rgbaFog", render.FogColor);
+            s.Uniform("flatFogDensity", uniforms.FlagFogDensity);
+            s.Uniform("flatFogStart", uniforms.FlatFogStartYPos - uniforms.PlayerPos.Y);
+            s.Uniform("viewDistance", ClientSettings.ViewDistance);
+            s.Uniform("viewDistanceLod0", (float)ClientSettings.ViewDistance * ClientSettings.LodBias);
+            this._platform.RenderFullscreenTriangle(this._screenQuad);
+            s.Stop();
+            this._platform.CheckGlError("Error while calculating deferred lighting");
+            GL.DrawBuffers(4, new DrawBuffersEnum[]
+            {
+                DrawBuffersEnum.ColorAttachment0,
+                DrawBuffersEnum.ColorAttachment1,
+                DrawBuffersEnum.ColorAttachment2,
+                DrawBuffersEnum.ColorAttachment3
+            });
+            this._platform.GlEnableDepthTest();
+        }
+
+        // Token: 0x060001B4 RID: 436 RVA: 0x0000363E File Offset: 0x0000183E
+        public void Dispose()
+        {
+            ShaderProgram shader = this._shader;
+            if (shader != null)
+            {
+                shader.Dispose();
+            }
+
+            this._shader = null;
+            if (this._frameBuffer != null)
+            {
+                this._platform.DisposeFrameBuffer(this._frameBuffer, true);
+                this._frameBuffer = null;
+            }
+        }
+
+        // Token: 0x040000B4 RID: 180
+        private readonly VolumetricShadingMod _mod;
+
+        // Token: 0x040000B5 RID: 181
+        private readonly ClientPlatformWindows _platform;
+
+        // Token: 0x040000B6 RID: 182
+        private ShaderProgram _shader;
+
+        // Token: 0x040000B7 RID: 183
+        private FrameBufferRef _frameBuffer;
+
+        // Token: 0x040000B8 RID: 184
+        private MeshRef _screenQuad;
+
+        // Token: 0x040000B9 RID: 185
+        private bool _enabled;
+    }
 }

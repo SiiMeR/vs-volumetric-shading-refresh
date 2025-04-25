@@ -3,3 +3,4 @@
 **/Releases/
 .idea/
 *.sln.DotSettings.User
+/Folder.DotSettings.user

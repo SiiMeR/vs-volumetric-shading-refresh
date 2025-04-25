@@ -1,9 +1,9 @@
-namespace VolumetricShading.Effects;
+namespace volumetricshadingupdated.VolumetricShading.Effects;
 
 public enum EnumSSRFB
 {
-	SSR,
-	Out,
-	Caustics,
-	Count
+    SSR,
+    Out,
+    Caustics,
+    Count
 }

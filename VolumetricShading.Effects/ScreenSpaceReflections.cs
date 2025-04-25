@@ -8,8 +8,7 @@ using Vintagestory.API.Common.Entities;
 using Vintagestory.API.MathTools;
 using Vintagestory.API.Util;
 using Vintagestory.Client.NoObf;
-using VolumetricShading;
-using VolumetricShading.Patch;
+using volumetricshadingupdated.VolumetricShading.Patch;
 
 namespace volumetricshadingupdated.VolumetricShading.Effects;
 

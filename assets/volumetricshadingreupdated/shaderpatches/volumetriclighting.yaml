@@ -76,8 +76,8 @@
 
 - type: token
   filename: chunkopaque.fsh
-  tokens: vec4(camPos.xyz, fogAmount * 2 + glowLevel);
-  content: vec4(camPos.xyz, fogAmount * 2 + glowLevel + godrayLevel * VOLUMETRIC_SSAO_DECLINE);
+  tokens: vec4(camPos.xyz, fogAmount * 2 + glowLevel + murkiness);
+  content: vec4(camPos.xyz, fogAmount * 2 + glowLevel + godrayLevel * VOLUMETRIC_SSAO_DECLINE + murkiness);
 
 - type: start
   filename: chunkopaque.vsh
@@ -236,7 +236,7 @@
 
 - type: token
   filename: sky.fsh
-  tokens: outGlow.y *= clamp((dayLight - 0.05) * 2, 0, 1);
+  tokens: outGlow.y *= clamp((dayLight - 0.05) * 2 - 50*murkiness, 0, 1);
   content: |
     #if GODRAYS > 0
     float normalOut = 0.5f*dayLight;
@@ -302,7 +302,7 @@
   filename: instanced.vsh
   content: out vec4 worldPos;
 
-- type: token
-  filename: instanced.vsh
-  tokens: vec4 worldPos =
-  content: worldPos =
+#- type: token
+#  filename: instanced.vsh
+#  tokens: vec4 worldPos =
+#  content: worldPos =

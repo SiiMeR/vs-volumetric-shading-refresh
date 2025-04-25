@@ -1,49 +1,52 @@
 <Project Sdk="Microsoft.NET.Sdk">
-  <PropertyGroup>
-    <AssemblyName>volumetricshadingupdated</AssemblyName>
-    <GenerateAssemblyInfo>False</GenerateAssemblyInfo>
-    <TargetFramework>netcoreapp7.0</TargetFramework>
-  </PropertyGroup>
-  <PropertyGroup>
-    <LangVersion>12.0</LangVersion>
-    <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
-  </PropertyGroup>
-  <PropertyGroup />
-  <ItemGroup />
-  <ItemGroup>
-    <Reference Include="YamlDotNet">
-      <HintPath>YamlDotNet.dll</HintPath>
-    </Reference>
-
-
-      <Reference Include="VintagestoryAPI">
-        <HintPath>$(VINTAGE_STORY)/VintagestoryAPI.dll</HintPath>
-        <Private>false</Private>
-      </Reference>
-      <Reference Include="VSSurvivalMod">
-        <HintPath>$(VINTAGE_STORY)/Mods/VSSurvivalMod.dll</HintPath>
-        <Private>False</Private>
-      </Reference>
-      <Reference Include="0Harmony">
-        <HintPath>$(VINTAGE_STORY)/Lib/0Harmony.dll</HintPath>
-        <Private>False</Private>
-      </Reference>
-      <Reference Include="VintagestoryLib">
-        <HintPath>$(VINTAGE_STORY)/VintagestoryLib.dll</HintPath>
-        <Private>false</Private>
-      </Reference>
-    <Reference Include="OpenTK.Graphics">
-      <HintPath>$(VINTAGE_STORY)/Lib/OpenTK.Graphics.dll</HintPath>
-      <Private>False</Private>
-    </Reference>
-      <Reference Include="OpenTK.Mathematics">
-        <HintPath>$(VINTAGE_STORY)/Lib/OpenTK.Mathematics.dll</HintPath>
-        <Private>False</Private>
-      </Reference>
-      <Reference Include="OpenTK.Windowing.Desktop">
-        <HintPath>$(VINTAGE_STORY)/Lib/OpenTK.Windowing.Desktop.dll</HintPath>
-        <Private>False</Private>
-      </Reference>
+    <PropertyGroup>
+        <TargetFramework>net7.0</TargetFramework>
+        <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+        <OutputPath>bin\$(Configuration)\Mods\mod</OutputPath>
+    </PropertyGroup>
+    <ItemGroup>
+        <Reference Include="YamlDotNet">
+            <HintPath>YamlDotNet.dll</HintPath>
+        </Reference>
+        <Reference Include="VintagestoryAPI">
+            <HintPath>$(VINTAGE_STORY)/VintagestoryAPI.dll</HintPath>
+            <Private>false</Private>
+        </Reference>
+        <Reference Include="VSSurvivalMod">
+            <HintPath>$(VINTAGE_STORY)/Mods/VSSurvivalMod.dll</HintPath>
+            <Private>False</Private>
+        </Reference>
+        <Reference Include="0Harmony">
+            <HintPath>$(VINTAGE_STORY)/Lib/0Harmony.dll</HintPath>
+            <Private>False</Private>
+        </Reference>
+        <Reference Include="VintagestoryLib">
+            <HintPath>$(VINTAGE_STORY)/VintagestoryLib.dll</HintPath>
+            <Private>false</Private>
+        </Reference>
+        <Reference Include="OpenTK.Graphics">
+            <HintPath>$(VINTAGE_STORY)/Lib/OpenTK.Graphics.dll</HintPath>
+            <Private>False</Private>
+        </Reference>
+        <Reference Include="OpenTK.Mathematics">
+            <HintPath>$(VINTAGE_STORY)/Lib/OpenTK.Mathematics.dll</HintPath>
+            <Private>False</Private>
+        </Reference>
+        <Reference Include="OpenTK.Windowing.Desktop">
+            <HintPath>$(VINTAGE_STORY)/Lib/OpenTK.Windowing.Desktop.dll</HintPath>
+            <Private>False</Private>
+        </Reference>
     </ItemGroup>
+
+
+    <ItemGroup>
+        <Content Include="assets\**">
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </Content>
+        <Content Include="modinfo.json">
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </Content>
+    </ItemGroup>
+
 
 </Project>

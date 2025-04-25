@@ -1,6 +1,6 @@
 - type: token
   filename: chunktopsoil.fsh
-  tokens: outColor = applyFogAndShadowWithNormal(outColor, fogAmount, normal, 1, intensity);
+  tokens: outColor = applyFogAndShadowWithNormal(outColor, clamp(fogAmount - 50*murkiness, 0, 1), normal, 1, intensity, worldPos.xyz)
   content: |
     float glow = 0.0;
     #if VSMOD_DEFERREDLIGHTING == 0
@@ -18,9 +18,9 @@
 
 - type: token
   filename: chunkopaque.fsh
-  tokens: outColor = applyFogAndShadowWithNormal(texColor, fogAmount, normal, 1, intensity);
+  tokens: float godrayLevel = 0;
   content: |
-    float glow = 0.0;
+    float godrayLevel = 0;
     #if VSMOD_DEFERREDLIGHTING > 0
     outColor = texColor;
     #else
@@ -37,8 +37,11 @@
 
 - type: token
   filename: entityanimated.fsh
-  tokens: outColor = applyFogAndShadowWithNormal(texColor, fogAmount, normal, 1, intensity);
+  tokens: if (glitchStrength > 0) texColor = applyRustEffect(texColor, normal, vertexPosition + vec3(seed), 0);
   content: |
+    if (glitchStrength > 0) texColor = applyRustEffect(texColor, normal, vertexPosition + vec3(seed), 0);
+    texColor *= color;
+    texColor.rgb *= b;
     float glow = 0.0;
     #if VSMOD_DEFERREDLIGHTING > 0
     outColor = texColor;
@@ -101,7 +104,7 @@
 
 - type: token
   filename: instanced.fsh
-  tokens: outColor = applyFogAndShadowWithNormal(outColor, fogAmount, normal, 1, 0.45);
+  tokens: outColor = applyFogAndShadowWithNormal(outColor, fogAmount, normal, 1, 0.45, worldPos.xyz);
   content: |
     float glow = 0.0;
     #if VSMOD_DEFERREDLIGHTING == 0

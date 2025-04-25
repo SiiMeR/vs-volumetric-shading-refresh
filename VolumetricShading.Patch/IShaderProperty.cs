@@ -1,6 +1,6 @@
-namespace VolumetricShading.Patch;
+namespace volumetricshadingupdated.VolumetricShading.Patch;
 
 public interface IShaderProperty
 {
-	string GenerateOutput();
+    string GenerateOutput();
 }

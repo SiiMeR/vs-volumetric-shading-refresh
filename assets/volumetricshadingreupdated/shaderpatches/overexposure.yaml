@@ -1,10 +1,10 @@
 - type: token
   filename: fogandlight.fsh
-  tokens: nb = max(nb, dot(normal, vec3(0, 1, 0)) * 0.95);
+  tokens: nb = max(nb, normal.y * 0.95);
   content: |
     float factor = 0.95f;
     factor = clamp(factor - 0.35f * VSMOD_OVEREXPOSURE, 0.0f, 1.0f);
-    nb = max(nb, dot(normal, vec3(0, 1, 0)) * factor);
+    nb = max(nb, normal.y * factor);
 
 - type: token
   filename: fogandlight.fsh
@@ -56,8 +56,9 @@
 
 - type: token
   filename: chunktransparent.fsh
-  tokens: texColor = applyFogAndShadowWithNormal(texColor, fogAmount, normal, normalShadeIntensity, 0.45);
+  tokens: vec4 texColor = rgba * getColorMapped(terrainTex, texture(terrainTex, uv));
   content: |
+    vec4 texColor = rgba * getColorMapped(terrainTex, texture(terrainTex, uv));
     float glow2 = 0.0;
     texColor = applyOverexposedFogAndShadow(texColor, fogAmount, normal, normalShadeIntensity, 0.45, worldPos.xyz, fogDensityIn, glow2);
 

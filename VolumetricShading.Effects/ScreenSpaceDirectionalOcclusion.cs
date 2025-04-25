@@ -1,11 +1,11 @@
-using VolumetricShading.Patch;
+using volumetricshadingupdated.VolumetricShading.Patch;
 
-namespace VolumetricShading.Effects;
+namespace volumetricshadingupdated.VolumetricShading.Effects;
 
 public class ScreenSpaceDirectionalOcclusion
 {
-	public ScreenSpaceDirectionalOcclusion(VolumetricShadingMod mod)
-	{
-		mod.ShaderInjector.RegisterBoolProperty("SSDO", () => ModSettings.SSDOEnabled);
-	}
+    public ScreenSpaceDirectionalOcclusion(VolumetricShadingMod mod)
+    {
+        mod.ShaderInjector.RegisterBoolProperty("SSDO", () => ModSettings.SSDOEnabled);
+    }
 }

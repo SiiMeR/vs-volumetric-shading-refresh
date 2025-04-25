@@ -1,16 +1,16 @@
-namespace VolumetricShading.Patch;
+namespace volumetricshadingupdated.VolumetricShading.Patch;
 
 public class StaticShaderProperty : IShaderProperty
 {
-	public string Output { get; set; }
+    public string Output { get; set; }
 
-	public StaticShaderProperty(string output = null)
-	{
-		Output = output;
-	}
+    public StaticShaderProperty(string output = null)
+    {
+        Output = output;
+    }
 
-	public string GenerateOutput()
-	{
-		return Output;
-	}
+    public string GenerateOutput()
+    {
+        return Output;
+    }
 }
