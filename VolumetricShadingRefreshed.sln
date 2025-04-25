@@ -1,0 +1,22 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CakeBuild", "VolumetricShadingRefreshed\CakeBuild\CakeBuild.csproj", "{233CEB67-1868-45A2-B35C-BB54AEB512D3}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "VolumetricShadingRefreshed", "VolumetricShadingRefreshed\VolumetricShadingRefreshed\volumetricshadingupdated.csproj", "{5F74146D-A5BD-496B-8999-DD0C5AA9FA39}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{233CEB67-1868-45A2-B35C-BB54AEB512D3}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{233CEB67-1868-45A2-B35C-BB54AEB512D3}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{233CEB67-1868-45A2-B35C-BB54AEB512D3}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{233CEB67-1868-45A2-B35C-BB54AEB512D3}.Release|Any CPU.Build.0 = Release|Any CPU
+		{5F74146D-A5BD-496B-8999-DD0C5AA9FA39}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{5F74146D-A5BD-496B-8999-DD0C5AA9FA39}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{5F74146D-A5BD-496B-8999-DD0C5AA9FA39}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{5F74146D-A5BD-496B-8999-DD0C5AA9FA39}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+EndGlobal

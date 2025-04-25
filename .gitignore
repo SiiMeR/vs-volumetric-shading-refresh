@@ -2,5 +2,5 @@
 **/obj/
 **/Releases/
 .idea/
-*.sln.DotSettings.User
-/Folder.DotSettings.user
+*.sln.DotSettings.User/
+Folder.DotSettings.user/
