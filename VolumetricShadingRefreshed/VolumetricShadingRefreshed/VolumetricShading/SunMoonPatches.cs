@@ -5,97 +5,114 @@ using System.Reflection.Emit;
 using HarmonyLib;
 using Vintagestory.Client.NoObf;
 
-namespace volumetricshadingupdated.VolumetricShading;
-
-[HarmonyPatch(typeof(SystemRenderSunMoon))]
-internal class SunMoonPatches
+namespace volumetricshadingupdated.VolumetricShading
 {
-    private static readonly MethodInfo StandardShaderTextureSetter =
-        typeof(ShaderProgramStandard).GetProperty("Tex2D")?.GetSetMethod();
-
-    private static readonly MethodInfo AddRenderFlagsSetter =
-        typeof(ShaderProgramStandard).GetProperty("AddRenderFlags")?.GetSetMethod();
-
-    private static readonly MethodInfo RenderCallsiteMethod = typeof(SunMoonPatches).GetMethod("RenderCallsite");
-
-    [HarmonyPatch("OnRenderFrame3D")]
-    [HarmonyTranspiler]
-    public static IEnumerable<CodeInstruction> RenderTranspiler(IEnumerable<CodeInstruction> instructions,
-        ILGenerator gen)
+    /// <summary>
+    /// Injects Volumetric-Shading callbacks into the two sun draw passes.
+    /// </summary>
+    [HarmonyPatch(typeof(SystemRenderSunMoon))]
+    internal class SunMoonPatches
     {
-        // we’ll need a temp local to hold the duplicate
-        LocalBuilder shaderLocal = gen.DeclareLocal(typeof(ShaderProgramStandard));
+        // ———————————————————————————————————————————————————————————— //
+        //   cached reflection handles
+        // ———————————————————————————————————————————————————————————— //
+        private static readonly MethodInfo SetterTex2D =
+            typeof(ShaderProgramStandard)
+                .GetProperty(nameof(ShaderProgramStandard.Tex2D))!
+                .GetSetMethod()!;
 
-        foreach (var ins in instructions)
+        private static readonly MethodInfo SetterAddFlags =
+            typeof(ShaderProgramStandard)
+                .GetProperty(nameof(ShaderProgramStandard.AddRenderFlags))!
+                .GetSetMethod()!;
+
+        private static readonly MethodInfo Callsite =
+            typeof(SunMoonPatches)
+                .GetMethod(nameof(RenderCallsite),
+                           BindingFlags.Static | BindingFlags.NonPublic)!;
+
+        // ====================================================================
+        //  1)  OnRenderFrame3D  – first sun pass
+        // ====================================================================
+        [HarmonyPatch("OnRenderFrame3D")]
+        [HarmonyTranspiler]
+        private static IEnumerable<CodeInstruction> Transpile_Render(
+            IEnumerable<CodeInstruction> src)
         {
-            if (CodeInstructionExtensions.Calls(ins, StandardShaderTextureSetter))
-            {
-                // Stack right now:  ShaderProgramStandard  (shader)   int (texture unit)
+            var buf = new CodeInstruction[4];
+            bool injected = false;
 
-                yield return new CodeInstruction(OpCodes.Dup);                  // dup int
-                yield return new CodeInstruction(OpCodes.Pop);                  // discard duplicated int
-                yield return new CodeInstruction(OpCodes.Dup);                  // dup shader
-                yield return new CodeInstruction(OpCodes.Stloc, shaderLocal);   // save copy -> local
-                //    (stack unchanged:  shader  int)
+            foreach (var il in src)
+            {
+                yield return il;
+
+                buf[3] = buf[2];
+                buf[2] = buf[1];
+                buf[1] = buf[0];
+                buf[0] = il;
+
+                if (CodeInstructionExtensions.Calls(il, SetterTex2D))
+                {
+                    // buf[3] == ldloc.s prog   (ShaderProgramStandard)
+                    yield return buf[3].Clone();
+                    yield return new CodeInstruction(OpCodes.Call, Callsite);
+                    injected = true;
+                }
             }
 
-            yield return ins;   // original instruction – the property setter consumes shader+int
+            if (!injected)
+                throw new Exception("[VolumetricShading] Tex2D setter not found – patch failed");
+        }
 
-            if (CodeInstructionExtensions.Calls(ins, StandardShaderTextureSetter))
+        // ====================================================================
+        //  2)  OnRenderFrame3DPost  – final composition pass
+        // ====================================================================
+        [HarmonyPatch("OnRenderFrame3DPost")]
+        [HarmonyTranspiler]
+        private static IEnumerable<CodeInstruction> Transpile_RenderPost(
+            IEnumerable<CodeInstruction> src)
+        {
+            var prev = new CodeInstruction[2];   // two-step look-back
+            bool injected = false;
+
+            foreach (var il in src)
             {
-                // after the call the stack is empty → load our saved shader and call the hook
-                yield return new CodeInstruction(OpCodes.Ldloc, shaderLocal);
-                yield return new CodeInstruction(OpCodes.Call, RenderCallsiteMethod);
+                var twoBack = prev[1];
+                yield return il;
+
+                prev[1] = prev[0];
+                prev[0] = il;
+
+                if (CodeInstructionExtensions.Calls(il, SetterAddFlags))
+                {
+                    // twoBack = ldloc.s prog  (shader instance)
+                    yield return twoBack.Clone();
+                    yield return new CodeInstruction(OpCodes.Call, Callsite);
+                    injected = true;
+                }
             }
-        }
-    }
 
-    [HarmonyPatch("OnRenderFrame3DPost")]
-    [HarmonyPostfix]
-    public static void RenderPostPostfix()
-    {
-        VolumetricShadingMod.Instance.OverexposureEffect.OnRenderedSun();
-    }
-
-    [HarmonyPatch("OnRenderFrame3D")]
-    [HarmonyPostfix]
-    public static void RenderPostfix()
-    {
-        VolumetricShadingMod.Instance.OverexposureEffect.OnRenderedSun();
-    }
-
-    [HarmonyPatch("OnRenderFrame3DPost")]
-    [HarmonyTranspiler]
-    public static IEnumerable<CodeInstruction> RenderPostTranspiler(IEnumerable<CodeInstruction> instructions,
-        ILGenerator generator)
-    {
-        bool found = false;
-        CodeInstruction[] previousInstructions = (CodeInstruction[])(object)new CodeInstruction[2];
-        foreach (CodeInstruction instruction in instructions)
-        {
-            CodeInstruction currentOld = previousInstructions[1];
-            yield return instruction;
-            previousInstructions[1] = previousInstructions[0];
-            previousInstructions[0] = instruction;
-            if (CodeInstructionExtensions.Calls(instruction, AddRenderFlagsSetter))
-            {
-                yield return currentOld;
-                yield return new CodeInstruction(OpCodes.Call, (object)RenderCallsiteMethod);
-                found = true;
-            }
+            if (!injected)
+                throw new Exception("[VolumetricShading] AddRenderFlags setter not found – patch failed");
         }
 
-        if (!found)
-        {
-            throw new Exception("Could not patch RenderFinalComposition!");
-        }
-    }
+        // ====================================================================
+        //  3)  Postfixes to reset glow state after each pass
+        // ====================================================================
+        [HarmonyPatch("OnRenderFrame3D")]
+        [HarmonyPostfix]
+        private static void AfterRender() =>
+            VolumetricShadingMod.Instance.OverexposureEffect.OnRenderedSun();
 
-    private static void RenderCallsite(ShaderProgramStandard shader)
-    {
-        if (shader != null && shader.HasUniform("extraOutGlow"))
-        {
+        [HarmonyPatch("OnRenderFrame3DPost")]
+        [HarmonyPostfix]
+        private static void AfterRenderPost() =>
+            VolumetricShadingMod.Instance.OverexposureEffect.OnRenderedSun();
+
+        // ====================================================================
+        //  4)  Method invoked from injected IL
+        // ====================================================================
+        private static void RenderCallsite(ShaderProgramStandard shader) =>
             VolumetricShadingMod.Instance.Events.EmitPreSunRender(shader);
-        }
     }
 }
