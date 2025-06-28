@@ -169,4 +169,7 @@ public static class ModSettings
         get { return ((SettingsBase)ClientSettings.Inst).GetBoolSetting("volumetricshading_deferredLighting"); }
         set { ((SettingsBaseNoObf)ClientSettings.Inst).Bool["volumetricshading_deferredLighting"] = value; }
     }
+    
+    public static bool DeferredLightingEnabledSet =>
+        ((SettingsBaseNoObf)ClientSettings.Inst).Bool.Exists("volumetricshading_deferredLighting");
 }

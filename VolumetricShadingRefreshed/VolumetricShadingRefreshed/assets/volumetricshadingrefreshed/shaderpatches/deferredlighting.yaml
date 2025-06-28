@@ -24,6 +24,11 @@
     #if VSMOD_DEFERREDLIGHTING > 0
     outColor = texColor;
     #else
+    #if SHADOWQUALITY > 0
+    float intensity = 0.34 + (1 - shadowIntensity)/8.0; // this was 0.45, which makes shadow acne visible on blocks
+    #else
+    float intensity = 0.45;
+    #endif
     outColor = applyOverexposedFogAndShadow(texColor, fogAmount, normal, 1.0, intensity, worldPos.xyz, fogDensityIn, glow);
     #endif
 
@@ -110,7 +115,7 @@
     #if VSMOD_DEFERREDLIGHTING == 0
     outColor = applyOverexposedFogAndShadow(outColor, fogAmount, normal, 1.0, 0.45, worldPos.xyz, fogDensityIn, glow);
     #endif
-    
+
 - type: token
   filename: instanced.vsh
   tokens: calcShadowMapCoords(modelViewMatrix, worldPos);
