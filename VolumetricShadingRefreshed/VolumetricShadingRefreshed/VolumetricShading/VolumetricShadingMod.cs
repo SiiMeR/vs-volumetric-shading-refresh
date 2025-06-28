@@ -101,7 +101,7 @@ public class VolumetricShadingMod : ModSystem
     public override void StartClientSide(ICoreClientAPI api)
     {
         RegisterHotkeys();
-        PatchGame();
+        PatchGame(); 
     }
 
     // Token: 0x060000ED RID: 237 RVA: 0x000052B0 File Offset: 0x000034B0

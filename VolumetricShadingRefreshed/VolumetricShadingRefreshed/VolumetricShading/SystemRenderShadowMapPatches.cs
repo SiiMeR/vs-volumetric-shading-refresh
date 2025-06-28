@@ -35,7 +35,7 @@ namespace volumetricshadingupdated.VolumetricShading
             }
             if (!constantPatched)
                 throw new Exception("[VSR] Could not find 16f literal to patch (shadow near z-extend).");
-
+ 
             //-----------------------------------------------------------------
             // 2) Insert our call immediately AFTER PrepareForShadowRendering(...)
             //-----------------------------------------------------------------
