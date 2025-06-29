@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 using OpenTK.Graphics.OpenGL;
 using Vintagestory.API.Client;
@@ -85,7 +84,6 @@ public class DeferredLighting
         return success;
     }
 
-    // Token: 0x060001B1 RID: 433 RVA: 0x00007370 File Offset: 0x00005570
     private void SetupFramebuffers(List<FrameBufferRef> mainBuffers)
     {
         if (_frameBuffer != null)
@@ -108,17 +106,18 @@ public class DeferredLighting
             return;
         }
 
-        var frameBufferRef = new FrameBufferRef();
-        frameBufferRef.FboId = GL.GenFramebuffer();
-        frameBufferRef.Width = fbWidth;
-        frameBufferRef.Height = fbHeight;
-        frameBufferRef.ColorTextureIds = ArrayUtil.CreateFilled(2, _ => GL.GenTexture());
-        var fb = frameBufferRef;
-        GL.BindFramebuffer(FramebufferTarget.Framebuffer, fb.FboId);
+        var frameBufferRef = new FrameBufferRef
+        {
+            FboId = GL.GenFramebuffer(),
+            Width = fbWidth,
+            Height = fbHeight,
+            ColorTextureIds = ArrayUtil.CreateFilled(2, _ => GL.GenTexture())
+        };
+        GL.BindFramebuffer(FramebufferTarget.Framebuffer, frameBufferRef.FboId);
         GL.FramebufferTexture2D(FramebufferTarget.Framebuffer, FramebufferAttachment.DepthAttachment,
             TextureTarget.Texture2D, fbPrimary.DepthTextureId, 0);
-        fb.SetupColorTexture(0);
-        fb.SetupColorTexture(1);
+        frameBufferRef.SetupColorTexture(0);
+        frameBufferRef.SetupColorTexture(1);
         GL.FramebufferTexture2D(FramebufferTarget.Framebuffer, FramebufferAttachment.ColorAttachment2,
             TextureTarget.Texture2D, fbPrimary.ColorTextureIds[2], 0);
         GL.FramebufferTexture2D(FramebufferTarget.Framebuffer, FramebufferAttachment.ColorAttachment3,
@@ -131,7 +130,7 @@ public class DeferredLighting
             DrawBuffersEnum.ColorAttachment3
         });
         Framebuffers.CheckStatus();
-        _frameBuffer = fb;
+        _frameBuffer = frameBufferRef;
         _screenQuad = _platform.GetScreenQuad();
     }
 
