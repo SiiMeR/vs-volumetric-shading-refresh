@@ -14,9 +14,6 @@ namespace volumetricshadingupdated.VolumetricShading.Effects;
 // Token: 0x02000045 RID: 69
 public class ScreenSpaceReflections : IRenderer, IDisposable
 {
-    // Token: 0x040000D4 RID: 212
-    private readonly FrameBufferRef[] _framebuffers = new FrameBufferRef[3];
-
     // Token: 0x040000D6 RID: 214
     private readonly ClientMain _game;
 
@@ -31,6 +28,9 @@ public class ScreenSpaceReflections : IRenderer, IDisposable
 
     // Token: 0x040000DA RID: 218
     private readonly FieldInfo _textureIdsField;
+
+    // Token: 0x040000D4 RID: 212
+    public readonly FrameBufferRef[] Framebuffers = new FrameBufferRef[3];
 
     // Token: 0x040000D3 RID: 211
     private bool _causticsEnabled;
@@ -123,12 +123,12 @@ public class ScreenSpaceReflections : IRenderer, IDisposable
     public void Dispose()
     {
         var windowsPlatform = _mod.CApi.GetClientPlatformWindows();
-        for (var i = 0; i < _framebuffers.Length; i++)
+        for (var i = 0; i < Framebuffers.Length; i++)
         {
-            if (_framebuffers[i] != null)
+            if (Framebuffers[i] != null)
             {
-                windowsPlatform.DisposeFrameBuffer(_framebuffers[i]);
-                _framebuffers[i] = null;
+                windowsPlatform.DisposeFrameBuffer(Framebuffers[i]);
+                Framebuffers[i] = null;
             }
         }
 
@@ -249,12 +249,12 @@ public class ScreenSpaceReflections : IRenderer, IDisposable
     public void SetupFramebuffers(List<FrameBufferRef> mainBuffers)
     {
         _mod.Mod.Logger.Event("Recreating framebuffers");
-        for (var i = 0; i < _framebuffers.Length; i++)
+        for (var i = 0; i < Framebuffers.Length; i++)
         {
-            if (_framebuffers[i] != null)
+            if (Framebuffers[i] != null)
             {
-                _platform.DisposeFrameBuffer(_framebuffers[i]);
-                _framebuffers[i] = null;
+                _platform.DisposeFrameBuffer(Framebuffers[i]);
+                Framebuffers[i] = null;
             }
         }
 
@@ -303,8 +303,8 @@ public class ScreenSpaceReflections : IRenderer, IDisposable
             });
         }
 
-        Framebuffers.CheckStatus();
-        _framebuffers[0] = framebuffer;
+        VolumetricShading.Framebuffers.CheckStatus();
+        Framebuffers[0] = framebuffer;
         framebuffer = new FrameBufferRef
         {
             FboId = GL.GenFramebuffer(),
@@ -315,8 +315,8 @@ public class ScreenSpaceReflections : IRenderer, IDisposable
         framebuffer.ColorTextureIds = new[] { GL.GenTexture() };
         framebuffer.SetupColorTexture(0);
         GL.DrawBuffer(DrawBufferMode.ColorAttachment0);
-        Framebuffers.CheckStatus();
-        _framebuffers[1] = framebuffer;
+        VolumetricShading.Framebuffers.CheckStatus();
+        Framebuffers[1] = framebuffer;
         if (_causticsEnabled)
         {
             framebuffer = new FrameBufferRef
@@ -329,8 +329,8 @@ public class ScreenSpaceReflections : IRenderer, IDisposable
             framebuffer.ColorTextureIds = new[] { GL.GenTexture() };
             framebuffer.SetupSingleColorTexture(0);
             GL.DrawBuffer(DrawBufferMode.ColorAttachment0);
-            Framebuffers.CheckStatus();
-            _framebuffers[2] = framebuffer;
+            VolumetricShading.Framebuffers.CheckStatus();
+            Framebuffers[2] = framebuffer;
         }
 
         _screenQuad = _platform.GetScreenQuad();
@@ -363,9 +363,9 @@ public class ScreenSpaceReflections : IRenderer, IDisposable
     // Token: 0x060001D1 RID: 465
     private void OnRenderSsrOut()
     {
-        var ssrOutFB = _framebuffers[1];
-        var ssrCausticsFB = _framebuffers[2];
-        var ssrFB = _framebuffers[0];
+        var ssrOutFB = Framebuffers[1];
+        var ssrCausticsFB = Framebuffers[2];
+        var ssrFB = Framebuffers[0];
         var ssrOutShader = _shaders[4];
         var ssrCausticsShader = _shaders[5];
         if (ssrOutFB == null)
@@ -446,7 +446,7 @@ public class ScreenSpaceReflections : IRenderer, IDisposable
     // Token: 0x060001D2 RID: 466 RVA: 0x00008584 File Offset: 0x00006784
     private void OnRenderSsrChunks()
     {
-        var ssrFB = _framebuffers[0];
+        var ssrFB = Framebuffers[0];
         if (ssrFB == null)
         {
             return;
@@ -565,9 +565,9 @@ public class ScreenSpaceReflections : IRenderer, IDisposable
     // Token: 0x060001D3 RID: 467 RVA: 0x00008B3C File Offset: 0x00006D3C
     public void OnSetFinalUniforms(ShaderProgramFinal final)
     {
-        var ssrOutFB = _framebuffers[1];
-        var ssrFB = _framebuffers[0];
-        var causticsFB = _framebuffers[2];
+        var ssrOutFB = Framebuffers[1];
+        var ssrFB = Framebuffers[0];
+        var causticsFB = Framebuffers[2];
         if (!_enabled)
         {
             return;

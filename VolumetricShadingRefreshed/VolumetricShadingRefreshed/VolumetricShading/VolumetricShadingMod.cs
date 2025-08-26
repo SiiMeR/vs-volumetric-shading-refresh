@@ -91,6 +91,8 @@ public class VolumetricShadingMod : ModSystem
     // (set) Token: 0x060000EA RID: 234 RVA: 0x00002B0E File Offset: 0x00000D0E
     public UnderwaterTweaks UnderwaterTweaks { get; private set; }
 
+    public DepthOfField DepthOfField { get; private set; }
+
     // Token: 0x060000EB RID: 235 RVA: 0x00002B17 File Offset: 0x00000D17
     public override bool ShouldLoad(EnumAppSide forSide)
     {
@@ -133,6 +135,7 @@ public class VolumetricShadingMod : ModSystem
         ShadowTweaks = new ShadowTweaks(this);
         DeferredLighting = new DeferredLighting(this);
         UnderwaterTweaks = new UnderwaterTweaks(this);
+        DepthOfField = new DepthOfField(this);
         ShaderInjector.Debug = Debug;
     }
 
@@ -241,6 +244,16 @@ public class VolumetricShadingMod : ModSystem
         {
             ModSettings.DeferredLightingEnabled = false;
         }
+
+        if (!ModSettings.DepthOfFieldEnabledSet)
+        {
+            ModSettings.DepthOfFieldEnabled = false;
+        }
+
+        // if (ModSettings.DepthOfFieldEnabled && ModSettings.DofBlurIntensity == 0)
+        // {
+        //     ModSettings.DofBlurIntensity = 50; // default intensity percent
+        // }
     }
 
     // Token: 0x060000F1 RID: 241 RVA: 0x000055AC File Offset: 0x000037AC
