@@ -8,15 +8,13 @@ public class RegexPatch : TargetedPatch
 {
     public delegate void ReplacementFunction(StringBuilder sb, Match match);
 
-    public bool Optional;
+    public ReplacementFunction DoReplace;
 
     public bool Multiple;
 
+    public bool Optional;
+
     public string ReplacementString;
-
-    public ReplacementFunction DoReplace;
-
-    public Regex Regex { get; }
 
     public RegexPatch(Regex regex)
     {
@@ -41,21 +39,24 @@ public class RegexPatch : TargetedPatch
     {
     }
 
+    public Regex Regex { get; }
+
     public override string Patch(string filename, string code)
     {
-        Match match = Regex.Match(code);
+        var match = Regex.Match(code);
         if (!match.Success)
         {
             if (!Optional)
             {
-                throw new InvalidOperationException($"Could not execute non-optional patch: Regex {Regex} not matched");
+                throw new InvalidOperationException(
+                    $"Could not execute non-optional patch: Regex {Regex} not matched in file {filename}");
             }
 
             return code;
         }
 
-        StringBuilder stringBuilder = new StringBuilder(code.Length);
-        int num = 0;
+        var stringBuilder = new StringBuilder(code.Length);
+        var num = 0;
         do
         {
             if (match.Index != num)
