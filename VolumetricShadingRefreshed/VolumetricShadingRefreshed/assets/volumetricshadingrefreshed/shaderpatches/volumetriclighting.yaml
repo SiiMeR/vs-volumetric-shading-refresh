@@ -91,9 +91,9 @@
 
 - type: token
   filename: chunkopaque.vsh
-  tokens: normal = unpackNormal(renderFlagsIn);
+  tokens: normal = unpackNormal(renderFlags);
   content: |
-    normal = unpackNormal(renderFlagsIn);
+    normal = unpackNormal(renderFlags);
     #if GODRAYS > 0 && VSMOD_DEFERREDLIGHTING == 0
     prepareVolumetricLighting(lightPosition, rgbaLightIn);
     #endif
