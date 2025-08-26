@@ -6,29 +6,29 @@ namespace volumetricshadingupdated.VolumetricShading.Patch;
 
 public class FunctionExtractor
 {
-    private static readonly Regex FunctionPrototypeRegex = new Regex("^\\S+\\s+([a-z_][a-z0-9_]*)\\s*\\([^)]*\\)\\s*{$",
+    private static readonly Regex FunctionPrototypeRegex = new("^\\S+\\s+([a-z_][a-z0-9_]*)\\s*\\([^)]*\\)\\s*{$",
         RegexOptions.IgnoreCase | RegexOptions.Singleline);
 
-    private readonly StringBuilder _sb = new StringBuilder();
+    private readonly StringBuilder _sb = new();
 
     public string ExtractedContent => _sb.ToString();
 
     public bool Extract(string code, string functionName)
     {
-        StringBuilder stringBuilder = new StringBuilder();
-        int num = 0;
-        bool flag = false;
-        bool flag2 = false;
-        bool flag3 = false;
-        bool flag4 = false;
-        char c = '\0';
-        bool flag5 = true;
-        bool flag6 = false;
-        foreach (char c2 in code)
+        var stringBuilder = new StringBuilder();
+        var num = 0;
+        var flag = false;
+        var flag2 = false;
+        var flag3 = false;
+        var flag4 = false;
+        var c = '\0';
+        var flag5 = true;
+        var flag6 = false;
+        foreach (var c2 in code)
         {
             if (flag3)
             {
-                char c3 = c2;
+                var c3 = c2;
                 if (c3 != '\n')
                 {
                     if (c3 != '\\')
@@ -110,7 +110,7 @@ public class FunctionExtractor
                             break;
                         }
 
-                        Match match = FunctionPrototypeRegex.Match(stringBuilder.ToString().Trim());
+                        var match = FunctionPrototypeRegex.Match(stringBuilder.ToString().Trim());
                         if (!match.Success)
                         {
                             throw new InvalidOperationException("Parsing error - function header doesn't match.");
@@ -150,7 +150,6 @@ public class FunctionExtractor
                 flag4 = false;
             }
 
-            goto IL_01e8;
             IL_01e8:
             if (c2 == '\n')
             {

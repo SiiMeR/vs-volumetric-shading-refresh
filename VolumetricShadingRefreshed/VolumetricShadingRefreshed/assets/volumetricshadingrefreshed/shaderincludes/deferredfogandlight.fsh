@@ -160,7 +160,7 @@ float getPCSSBrightnessAt(vec4 worldPos, float blockBrightness, vec3 normal) {
 }
 
 vec4 applyOverexposedFogAndShadowDeferred(vec4 worldPos, vec4 rgbaPixel, float fogWeight, vec3 normal,
-    float normalShadeIntensity, float minNormalShade, float fogDensity, float blockBrightness, inout float glow) {
+float normalShadeIntensity, float minNormalShade, float fogDensity, float blockBrightness, inout float glow) {
 
     float b = getPCSSBrightnessAt(worldPos, blockBrightness, normal);
     float nb = getBrightnessFromNormal(normal, normalShadeIntensity, minNormalShade);
@@ -180,7 +180,7 @@ float getFogLevelDeferred(float depth, float fogMin, float fogDensity, float wor
     //float extraDistanceFog = max(-flatFogDensity * flatFogStart / (160 + heightDiff * 3), 0);   // heightDiff*3 seems to fix distant mountains being supper fogged on most flat fog values
     // ^ this breaks stuff. Also doesn't seem to be needed? Seems to work fine without
 
-    float extraDistanceFog = max(-flatFogDensity * clampedDepth * (flatFogStart) / 60, 0); // div 60 was 160 before, at 160 thick flat fog looks broken when looking at trees
+    float extraDistanceFog = max(-flatFogDensity * clampedDepth * (flatFogStart) / 60, 0);// div 60 was 160 before, at 160 thick flat fog looks broken when looking at trees
 
     float distanceFog = 1 - 1 / exp(clampedDepth * fogDensity + extraDistanceFog);
     float flatFog = 1 - 1 / exp(heightDiff * flatFogDensity);
@@ -195,7 +195,7 @@ float getFogLevelDeferred(float depth, float fogMin, float fogDensity, float wor
     return clamp(val, 0, 1);
 }
 
-uint volumetricHash( uint x, uint y )
+uint volumetricHash(uint x, uint y)
 {
     x += x >> 11;
     x ^= x << 7;
@@ -208,16 +208,16 @@ uint volumetricHash( uint x, uint y )
     return x;
 }
 
-float volumetricRandom( uvec2 v ) {
+float volumetricRandom(uvec2 v) {
     const uint mantissaMask = 0x007FFFFFu;
     const uint one          = 0x3F800000u;
-   
+
     uvec2 uv = floatBitsToUint(v);
-    uint h = volumetricHash( uv.x, uv.y );
+    uint h = volumetricHash(uv.x, uv.y);
     h &= mantissaMask;
     h |= one;
-    
-    float  r2 = uintBitsToFloat( h );
+
+    float  r2 = uintBitsToFloat(h);
     return r2 - 1.0;
 }
 
@@ -226,7 +226,7 @@ float calculateVolumetricScatterDeferred(vec4 worldPos, vec4 cameraPos) {
     vec4 shadowCoordsFar = toShadowMapSpaceMatrixFar * worldPos;
     vec4 shadowRayStart = toShadowMapSpaceMatrixFar * cameraPos;
     vec4 shadowLightPos = toShadowMapSpaceMatrixFar * vec4(lightPosition, 0.0);
-    
+
     float dither = fract(0.75487765 * gl_FragCoord.x + 0.56984026 * gl_FragCoord.y);
 
     const int maxSamples = 6;

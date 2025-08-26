@@ -7,28 +7,20 @@ using volumetricshadingupdated.VolumetricShading.Patch;
 
 namespace volumetricshadingupdated.VolumetricShading.Effects;
 
-// Token: 0x0200003D RID: 61
 public class DeferredLighting
 {
-    // Token: 0x040000B4 RID: 180
     private readonly VolumetricShadingMod _mod;
 
-    // Token: 0x040000B5 RID: 181
     private readonly ClientPlatformWindows _platform;
 
-    // Token: 0x040000B9 RID: 185
     private bool _enabled;
 
-    // Token: 0x040000B7 RID: 183
     private FrameBufferRef _frameBuffer;
 
-    // Token: 0x040000B8 RID: 184
     private MeshRef _screenQuad;
 
-    // Token: 0x040000B6 RID: 182
     private ShaderProgram _shader;
 
-    // Token: 0x060001AD RID: 429 RVA: 0x000071F8 File Offset: 0x000053F8
     public DeferredLighting(VolumetricShadingMod mod)
     {
         _mod = mod;
@@ -49,7 +41,6 @@ public class DeferredLighting
         SetupFramebuffers(_platform.FrameBuffers);
     }
 
-    // Token: 0x060001AE RID: 430 RVA: 0x000035CB File Offset: 0x000017CB
     private void OnDeferredLightingChanged(bool enabled)
     {
         _enabled = enabled;
@@ -59,7 +50,6 @@ public class DeferredLighting
         }
     }
 
-    // Token: 0x060001AF RID: 431 RVA: 0x000035E4 File Offset: 0x000017E4
     private void OnSSAOQualityChanged(int quality)
     {
         if (quality == 0 && _enabled)
@@ -70,7 +60,6 @@ public class DeferredLighting
         }
     }
 
-    // Token: 0x060001B0 RID: 432 RVA: 0x00007330 File Offset: 0x00005530
     private bool OnReloadShaders()
     {
         var success = true;
@@ -134,7 +123,6 @@ public class DeferredLighting
         _screenQuad = _platform.GetScreenQuad();
     }
 
-    // Token: 0x060001B2 RID: 434 RVA: 0x00003618 File Offset: 0x00001818
     public void OnBeginRender()
     {
         if (_frameBuffer == null)
@@ -146,7 +134,6 @@ public class DeferredLighting
         GL.Clear(ClearBufferMask.DepthBufferBit | ClearBufferMask.ColorBufferBit);
     }
 
-    // Token: 0x060001B3 RID: 435 RVA: 0x00007500 File Offset: 0x00005700
     public void OnEndRender()
     {
         if (_frameBuffer == null)
@@ -207,7 +194,6 @@ public class DeferredLighting
         _platform.GlEnableDepthTest();
     }
 
-    // Token: 0x060001B4 RID: 436 RVA: 0x0000363E File Offset: 0x0000183E
     public void Dispose()
     {
         var shader = _shader;

@@ -28,9 +28,9 @@ void main()
     vec4 color = texture(terrainTex, uv);
     if (color.a < 0.5) discard;
 
-	outGPosition = vec4(fragPosition.xyz, 0);
-	outGNormal = vec4(normalize(gnormal.xyz), playerUnderwater);
-	color = vec4(pow(color.rgb, vec3(2.2)), 1.0);
+    outGPosition = vec4(fragPosition.xyz, 0);
+    outGNormal = vec4(normalize(gnormal.xyz), playerUnderwater);
+    color = vec4(pow(color.rgb, vec3(2.2)), 1.0);
     outTint = vec4(getColorMapped(terrainTexLinear, color).rgb, 0);
     #if VSMOD_REFRACT > 0
     outRefraction = vec4(0, 0, 0, 1);

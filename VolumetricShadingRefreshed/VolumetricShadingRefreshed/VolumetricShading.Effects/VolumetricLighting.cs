@@ -1,6 +1,5 @@
 using System.Reflection;
 using Vintagestory.API.Client;
-using Vintagestory.API.Common;
 using Vintagestory.Client.NoObf;
 using volumetricshadingupdated.VolumetricShading.Patch;
 
@@ -8,11 +7,10 @@ namespace volumetricshadingupdated.VolumetricShading.Effects;
 
 public class VolumetricLighting
 {
-    private readonly VolumetricShadingMod _mod;
+    private readonly FieldInfo _dropShadowIntensityField;
 
     private readonly ClientMain _game;
-
-    private readonly FieldInfo _dropShadowIntensityField;
+    private readonly VolumetricShadingMod _mod;
 
     private bool _enabled;
 
@@ -23,8 +21,8 @@ public class VolumetricLighting
         _dropShadowIntensityField =
             typeof(AmbientManager).GetField("DropShadowIntensity", BindingFlags.Instance | BindingFlags.NonPublic);
         _enabled = ClientSettings.GodRayQuality > 0;
-        _mod.CApi.Settings.AddWatcher<int>("shadowMapQuality", (OnSettingsChanged<int>)OnShadowMapChanged);
-        _mod.CApi.Settings.AddWatcher<int>("godRays", (OnSettingsChanged<int>)OnGodRaysChanged);
+        _mod.CApi.Settings.AddWatcher("shadowMapQuality", (OnSettingsChanged<int>)OnShadowMapChanged);
+        _mod.CApi.Settings.AddWatcher("godRays", (OnSettingsChanged<int>)OnGodRaysChanged);
         _mod.Events.PreGodraysRender += OnSetGodrayUniforms;
         _mod.Events.PostUseShader += OnPostUseShader;
         RegisterPatches();
@@ -32,14 +30,14 @@ public class VolumetricLighting
 
     private void RegisterPatches()
     {
-        ShaderInjector shaderInjector = _mod.ShaderInjector;
+        var shaderInjector = _mod.ShaderInjector;
         shaderInjector.RegisterFloatProperty("VOLUMETRIC_FLATNESS", delegate
         {
-            int volumetricLightingFlatness = ModSettings.VolumetricLightingFlatness;
-            return (float)(200 - volumetricLightingFlatness) * 0.01f;
+            var volumetricLightingFlatness = ModSettings.VolumetricLightingFlatness;
+            return (200 - volumetricLightingFlatness) * 0.01f;
         });
         shaderInjector.RegisterFloatProperty("VOLUMETRIC_INTENSITY",
-            () => (float)ModSettings.VolumetricLightingIntensity * 0.01f);
+            () => ModSettings.VolumetricLightingIntensity * 0.01f);
     }
 
     private static void OnShadowMapChanged(int quality)
@@ -62,28 +60,28 @@ public class VolumetricLighting
 
     public void OnSetGodrayUniforms(ShaderProgramGodrays rays)
     {
-        IClientGameCalendar calendar = _mod.CApi.World.Calendar;
-        IAmbientManager ambient = _mod.CApi.Ambient;
+        var calendar = _mod.CApi.World.Calendar;
+        var ambient = _mod.CApi.Ambient;
         _ = _mod.CApi.Render.ShaderUniforms;
-        Uniforms uniforms = _mod.Uniforms;
-        object obj = _dropShadowIntensityField?.GetValue(_mod.CApi.Ambient);
+        var uniforms = _mod.Uniforms;
+        var obj = _dropShadowIntensityField?.GetValue(_mod.CApi.Ambient);
         if (obj == null)
         {
-            ((ModSystem)_mod).Mod.Logger.Fatal("DropShadowIntensity not found!");
+            _mod.Mod.Logger.Fatal("DropShadowIntensity not found!");
             return;
         }
 
-        float num = (float)obj;
-        float eyesInWaterDepth = _game.playerProperties.EyesInWaterDepth;
-        ((ShaderProgramBase)rays).Uniform("moonLightStrength", calendar.MoonLightStrength);
-        ((ShaderProgramBase)rays).Uniform("sunLightStrength", calendar.SunLightStrength);
-        ((ShaderProgramBase)rays).Uniform("dayLightStrength", calendar.DayLightStrength);
-        ((ShaderProgramBase)rays).Uniform("shadowIntensity", num);
-        ((ShaderProgramBase)rays).Uniform("flatFogDensity", ambient.BlendedFlatFogDensity);
-        ((ShaderProgramBase)rays).Uniform("playerWaterDepth", eyesInWaterDepth);
-        ((ShaderProgramBase)rays).Uniform("fogColor", ambient.BlendedFogColor);
-        ((ShaderProgramBase)rays).UniformMatrix("invProjectionMatrix", uniforms.InvProjectionMatrix);
-        ((ShaderProgramBase)rays).UniformMatrix("invModelViewMatrix", uniforms.InvModelViewMatrix);
+        var num = (float)obj;
+        var eyesInWaterDepth = _game.playerProperties.EyesInWaterDepth;
+        rays.Uniform("moonLightStrength", calendar.MoonLightStrength);
+        rays.Uniform("sunLightStrength", calendar.SunLightStrength);
+        rays.Uniform("dayLightStrength", calendar.DayLightStrength);
+        rays.Uniform("shadowIntensity", num);
+        rays.Uniform("flatFogDensity", ambient.BlendedFlatFogDensity);
+        rays.Uniform("playerWaterDepth", eyesInWaterDepth);
+        rays.Uniform("fogColor", ambient.BlendedFogColor);
+        rays.UniformMatrix("invProjectionMatrix", uniforms.InvProjectionMatrix);
+        rays.UniformMatrix("invModelViewMatrix", uniforms.InvModelViewMatrix);
     }
 
     private void OnPostUseShader(ShaderProgramBase shader)

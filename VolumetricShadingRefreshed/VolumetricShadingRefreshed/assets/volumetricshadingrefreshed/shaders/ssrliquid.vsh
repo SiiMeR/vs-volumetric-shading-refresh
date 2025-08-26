@@ -51,29 +51,29 @@ flat out int skyExposed;
 
 void main(void)
 {
-	worldPos = vec4(vertexPositionIn + origin, 1.0);
-	
-	float div = ((waterFlagsIn & (1<<27)) > 0) ? 90 : 10;
-	float yBefore = worldPos.y;
-	
-	worldPos = applyLiquidWarping((waterFlagsIn & 0x2000000) == 0, worldPos, div);
-	
-	vec4 cameraPos = modelViewMatrix * worldPos;
-	
-	gl_Position = projectionMatrix * cameraPos;
-	
-	vec3 fragNormal = unpackNormal(renderFlags);
+    worldPos = vec4(vertexPositionIn + origin, 1.0);
 
-	fragWorldPos = worldPos.xyz + playerpos;
+    float div = ((waterFlagsIn & (1<<27)) > 0) ? 90 : 10;
+    float yBefore = worldPos.y;
+
+    worldPos = applyLiquidWarping((waterFlagsIn & 0x2000000) == 0, worldPos, div);
+
+    vec4 cameraPos = modelViewMatrix * worldPos;
+
+    gl_Position = projectionMatrix * cameraPos;
+
+    vec3 fragNormal = unpackNormal(renderFlags);
+
+    fragWorldPos = worldPos.xyz + playerpos;
     fragPosition = cameraPos;
-	gnormal = modelViewMatrix * vec4(fragNormal.xyz, 0);
-	worldNormal = fragNormal;
+    gnormal = modelViewMatrix * vec4(fragNormal.xyz, 0);
+    worldNormal = fragNormal;
     waterFlags = waterFlagsIn;
-	skyExposed = renderFlags & LiquidExposedToSkyBitMask;
+    skyExposed = renderFlags & LiquidExposedToSkyBitMask;
 
-	flowVectorf = flowVector;
-	uv = uvIn;
+    flowVectorf = flowVector;
+    uv = uvIn;
 
-	alpha = rgbaLightIn.a < 0.2f ? 0.0f : 1.0f;
-	calcColorMapUvs(colormapData, vec4(vertexPositionIn + origin, 1.0) + vec4(playerpos, 1), rgbaLightIn.a, false);
+    alpha = rgbaLightIn.a < 0.2f ? 0.0f : 1.0f;
+    calcColorMapUvs(colormapData, vec4(vertexPositionIn + origin, 1.0) + vec4(playerpos, 1), rgbaLightIn.a, false);
 }

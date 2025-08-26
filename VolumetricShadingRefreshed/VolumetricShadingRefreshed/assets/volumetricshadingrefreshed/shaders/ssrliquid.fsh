@@ -62,7 +62,7 @@ float generateSplash(vec3 pos)
 {
     vec3 localPos = fract(pos.xyz / 512.0) * 512.0;
     vec2 uv = 5.0 * pos.xz;
-    
+
     return dropletnoise(uv, waterWaveCounter);
 }
 
@@ -70,7 +70,7 @@ void generateSplashBump(inout vec3 normalMap, vec3 pos)
 {
     const vec3 deltaPos = vec3(0.01, 0.0, 0.0);
     vec3 startPos = pos - deltaPos.xyx * 0.5;
-    
+
     float val0 = generateSplash(startPos);
     float val1 = generateSplash(startPos + deltaPos.xyz);
     //float val2 = generateSplash(pos - deltaPos.xyz);
@@ -99,16 +99,16 @@ mat3 cotangentFrame(vec3 N, vec3 p, vec2 uv) {
     return mat3(T * invmax, B * invmax, N);
 }
 
-void main() 
+void main()
 {
     float isWater = ((waterFlags & (1<<25)) > 0) ? 0.0f : 1.0f;
     float myAlpha = alpha * isWater;
     if (myAlpha < 0.5) discard;
-    
+
     // apply waves
     float caustics = length(flowVectorf) > 0.001 ? 0 : 1;
     float div = ((waterFlags & (1<<27)) > 0) ? 90 : 10;
-	//float noise = generateNoise(worldPos.xyz + playerpos.xyz, div, wind);
+    //float noise = generateNoise(worldPos.xyz + playerpos.xyz, div, wind);
 
     mat3 tbn = cotangentFrame(worldNormal, worldPos.xyz, uv);
     mat3 invTbn = transpose(tbn);
@@ -128,14 +128,14 @@ void main()
     vec3 worldNormalMap = tbn * normalMap;
     vec3 camNormalMap = (modelViewMatrix * vec4(worldNormalMap, 0.0)).xyz;
     vec3 myGNormal = gnormal.xyz;
-    
+
     if (dot(gnormal.xyz, fragPosition.xyz) > 0) {
         // flip the normal if viewed from behind
         myGNormal = -gnormal.xyz;
     }
-    
-	outGPosition = vec4(fragPosition.xyz, 0);
-	outGNormal = vec4(normalize(camNormalMap*2 + myGNormal), 1.0 - playerUnderwater * caustics);
+
+    outGPosition = vec4(fragPosition.xyz, 0);
+    outGNormal = vec4(normalize(camNormalMap*2 + myGNormal), 1.0 - playerUnderwater * caustics);
     outTint = vec4(getColorMapped(terrainTex, vec4(1)).rgb, 0);
     #if VSMOD_REFRACT > 0
     outRefraction = vec4((-camNormalMap.xy*1.2) / fragPosition.z, 0, 0);

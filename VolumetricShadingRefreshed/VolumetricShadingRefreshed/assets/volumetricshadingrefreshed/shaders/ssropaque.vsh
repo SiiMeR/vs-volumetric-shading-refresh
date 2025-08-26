@@ -34,31 +34,31 @@ flat out int renderFlags;
 
 void main(void)
 {
-	bool isLeaves = ((renderFlagsIn & WindModeBitMask) > 0); 
-	vec4 worldPos = vec4(vertexPositionIn + origin, 1.0);
-	
-	worldPos = applyVertexWarping(renderFlagsIn, worldPos);
-	
-	vec4 cameraPos = modelViewMatrix * worldPos;
+    bool isLeaves = ((renderFlagsIn & WindModeBitMask) > 0);
+    vec4 worldPos = vec4(vertexPositionIn + origin, 1.0);
 
-	gl_Position = projectionMatrix * cameraPos;
-	
-	calcColorMapUvs(colormapData, worldPos + vec4(playerpos,1), rgbaLightIn.a, isLeaves);
-	
-	renderFlags = renderFlagsIn;  
-	vec3 normal = unpackNormal(renderFlagsIn);	
+    worldPos = applyVertexWarping(renderFlagsIn, worldPos);
+
+    vec4 cameraPos = modelViewMatrix * worldPos;
+
+    gl_Position = projectionMatrix * cameraPos;
+
+    calcColorMapUvs(colormapData, worldPos + vec4(playerpos, 1), rgbaLightIn.a, isLeaves);
+
+    renderFlags = renderFlagsIn;
+    vec3 normal = unpackNormal(renderFlagsIn);
     worldPos.xyz += normal * 0.001;
-	
-	fragPosition = cameraPos;
-	gnormal = modelViewMatrix * vec4(normal.xyz, 0);
-	uv = uvIn;
 
-	// Now the lowest 3 bits are used as an unsigned number 
-	// to fix Z-Fighting on blocks over certain other blocks. 
-	if (gl_Position.z > 0) {
-		int zOffset = (renderFlags & ZOffsetBitMask) >> 8;
+    fragPosition = cameraPos;
+    gnormal = modelViewMatrix * vec4(normal.xyz, 0);
+    uv = uvIn;
+
+    // Now the lowest 3 bits are used as an unsigned number 
+    // to fix Z-Fighting on blocks over certain other blocks. 
+    if (gl_Position.z > 0) {
+        int zOffset = (renderFlags & ZOffsetBitMask) >> 8;
         gl_Position.w += zOffset * 0.00025 / max(0.1, gl_Position.z * 0.05);
-	}
+    }
 
     gl_Position.z -= 0.01;
 }

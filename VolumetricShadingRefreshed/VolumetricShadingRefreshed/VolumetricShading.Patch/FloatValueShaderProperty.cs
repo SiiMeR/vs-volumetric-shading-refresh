@@ -6,14 +6,14 @@ public class FloatValueShaderProperty : ValueShaderProperty
 {
     public delegate float FloatValueDelegate();
 
-    public FloatValueDelegate FloatValueGenerator { get; set; }
-
     public FloatValueShaderProperty(string name = null, FloatValueDelegate floatValueGenerator = null)
     {
-        base.ValueGenerator = GenerateValue;
-        base.Name = name;
+        ValueGenerator = GenerateValue;
+        Name = name;
         FloatValueGenerator = floatValueGenerator;
     }
+
+    public FloatValueDelegate FloatValueGenerator { get; set; }
 
     private string GenerateValue()
     {

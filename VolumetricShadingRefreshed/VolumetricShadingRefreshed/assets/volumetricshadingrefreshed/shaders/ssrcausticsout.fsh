@@ -26,7 +26,7 @@ void main(void)
 {
     float underwater = texture(gNormal, texcoord).w;
     if (underwater > 0.5) discard;
-    
+
     float projectedZ = texture(gDepth, texcoord).r;
     vec4 screenPosition = vec4(vec3(texcoord, projectedZ) * 2.0 - 1.0, 1.0);
     screenPosition = invProjectionMatrix * screenPosition;
@@ -36,13 +36,13 @@ void main(void)
     vec4 cameraWorldPos = invModelViewMatrix * vec4(0, 0, 0, 1);
 
     vec3 absWorldPos = worldPosition.xyz + playerPos;
-    
+
     float shadowBrightness = getPCFBrightnessAt(worldPosition);
     float shadowStrength = clamp(pow(shadowIntensity, 2.0f), 0.2f, 1.0f);
     //float shadowStrength = 1.0f;
 
     float waveNoise = generateCausticsNoise(absWorldPos, sunPosition) * 1.3;
-    
+
     float fog = 1.0 - getFogLevelDeferred(length(screenPosition), fogMinIn, fogDensityIn, absWorldPos.y);
     float distance = exp(-length(worldPosition - cameraWorldPos) * 0.008f);
     outStrength = (waveNoise * distance * shadowBrightness * shadowStrength * fog + 0.5) - 0.05 * distance * fog * shadowStrength;

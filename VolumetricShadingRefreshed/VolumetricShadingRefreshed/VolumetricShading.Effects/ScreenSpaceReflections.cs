@@ -11,61 +11,42 @@ using volumetricshadingupdated.VolumetricShading.Patch;
 
 namespace volumetricshadingupdated.VolumetricShading.Effects;
 
-// Token: 0x02000045 RID: 69
 public class ScreenSpaceReflections : IRenderer, IDisposable
 {
-    // Token: 0x040000D4 RID: 212
     private readonly FrameBufferRef[] _framebuffers = new FrameBufferRef[3];
 
-    // Token: 0x040000D6 RID: 214
     private readonly ClientMain _game;
 
-    // Token: 0x040000CF RID: 207
     private readonly VolumetricShadingMod _mod;
 
-    // Token: 0x040000D7 RID: 215
     private readonly ClientPlatformWindows _platform;
 
-    // Token: 0x040000D5 RID: 213
     private readonly IShaderProgram[] _shaders = new IShaderProgram[6];
 
-    // Token: 0x040000DA RID: 218
     private readonly FieldInfo _textureIdsField;
 
-    // Token: 0x040000D3 RID: 211
     private bool _causticsEnabled;
 
-    // Token: 0x040000D8 RID: 216
     private ChunkRenderer _chunkRenderer;
 
-    // Token: 0x040000DD RID: 221
     private float _currentRain;
 
-    // Token: 0x040000D0 RID: 208
     private bool _enabled;
 
-    // Token: 0x040000DC RID: 220
     private int _fbHeight;
 
-    // Token: 0x040000DB RID: 219
     private int _fbWidth;
 
-    // Token: 0x040000DF RID: 223
     private float _rainAccumulator;
 
-    // Token: 0x040000D1 RID: 209
     private bool _rainEnabled;
 
-    // Token: 0x040000D2 RID: 210
     private bool _refractionsEnabled;
 
-    // Token: 0x040000D9 RID: 217
     private MeshRef _screenQuad;
 
-    // Token: 0x040000DE RID: 222
     private float _targetRain;
 
-    // Token: 0x060001C6 RID: 454 RVA: 0x00007860 File Offset: 0x00005A60
     public ScreenSpaceReflections(VolumetricShadingMod mod)
     {
         _mod = mod;
@@ -93,7 +74,6 @@ public class ScreenSpaceReflections : IRenderer, IDisposable
         SetupFramebuffers(_platform.FrameBuffers);
     }
 
-    // Token: 0x060001CF RID: 463 RVA: 0x0000376B File Offset: 0x0000196B
     public void OnRenderFrame(float deltaTime, EnumRenderStage stage)
     {
         if (!_enabled)
@@ -119,7 +99,6 @@ public class ScreenSpaceReflections : IRenderer, IDisposable
         }
     }
 
-    // Token: 0x060001D4 RID: 468 RVA: 0x00008C28 File Offset: 0x00006E28
     public void Dispose()
     {
         var windowsPlatform = _mod.CApi.GetClientPlatformWindows();
@@ -147,15 +126,12 @@ public class ScreenSpaceReflections : IRenderer, IDisposable
         _screenQuad = null;
     }
 
-    // Token: 0x1700005C RID: 92
     // (get) Token: 0x060001D5 RID: 469 RVA: 0x0000358C File Offset: 0x0000178C
     public double RenderOrder => 1.0;
 
-    // Token: 0x1700005D RID: 93
     // (get) Token: 0x060001D6 RID: 470 RVA: 0x00002A24 File Offset: 0x00000C24
     public int RenderRange => int.MaxValue;
 
-    // Token: 0x060001C7 RID: 455 RVA: 0x00007A28 File Offset: 0x00005C28
     private void RegeneratePatches()
     {
         var code = _mod.CApi.Assets.Get(new AssetLocation("game", "shaders/chunkliquid.fsh")).ToText();
@@ -179,7 +155,6 @@ public class ScreenSpaceReflections : IRenderer, IDisposable
         _mod.ShaderInjector["dropletnoise"] = content;
     }
 
-    // Token: 0x060001C8 RID: 456 RVA: 0x00007B00 File Offset: 0x00005D00
     private void RegisterInjectorProperties()
     {
         var shaderInjector = _mod.ShaderInjector;
@@ -196,31 +171,26 @@ public class ScreenSpaceReflections : IRenderer, IDisposable
         shaderInjector.RegisterBoolProperty("VSMOD_CAUSTICS", () => ModSettings.SSRCausticsEnabled);
     }
 
-    // Token: 0x060001C9 RID: 457 RVA: 0x00003747 File Offset: 0x00001947
     private void OnEnabledChanged(bool enabled)
     {
         _enabled = enabled;
     }
 
-    // Token: 0x060001CA RID: 458 RVA: 0x00003750 File Offset: 0x00001950
     private void OnRainReflectionsChanged(bool enabled)
     {
         _rainEnabled = enabled;
     }
 
-    // Token: 0x060001CB RID: 459 RVA: 0x00003759 File Offset: 0x00001959
     private void OnRefractionsChanged(bool enabled)
     {
         _refractionsEnabled = enabled;
     }
 
-    // Token: 0x060001CC RID: 460 RVA: 0x00003762 File Offset: 0x00001962
     private void OnCausticsChanged(bool enabled)
     {
         _causticsEnabled = enabled;
     }
 
-    // Token: 0x060001CD RID: 461 RVA: 0x00007C68 File Offset: 0x00005E68
     private bool ReloadShaders()
     {
         var success = true;
@@ -245,7 +215,6 @@ public class ScreenSpaceReflections : IRenderer, IDisposable
         return success;
     }
 
-    // Token: 0x060001CE RID: 462 RVA: 0x00007D5C File Offset: 0x00005F5C
     public void SetupFramebuffers(List<FrameBufferRef> mainBuffers)
     {
         _mod.Mod.Logger.Event("Recreating framebuffers");
@@ -336,7 +305,6 @@ public class ScreenSpaceReflections : IRenderer, IDisposable
         _screenQuad = _platform.GetScreenQuad();
     }
 
-    // Token: 0x060001D0 RID: 464 RVA: 0x00008000 File Offset: 0x00006200
     private void OnPreRender(float dt)
     {
         _rainAccumulator += dt;
@@ -360,7 +328,6 @@ public class ScreenSpaceReflections : IRenderer, IDisposable
         }
     }
 
-    // Token: 0x060001D1 RID: 465
     private void OnRenderSsrOut()
     {
         var ssrOutFB = _framebuffers[1];
@@ -443,7 +410,6 @@ public class ScreenSpaceReflections : IRenderer, IDisposable
         GL.Enable(EnableCap.Blend);
     }
 
-    // Token: 0x060001D2 RID: 466 RVA: 0x00008584 File Offset: 0x00006784
     private void OnRenderSsrChunks()
     {
         var ssrFB = _framebuffers[0];
@@ -562,7 +528,6 @@ public class ScreenSpaceReflections : IRenderer, IDisposable
         _platform.CheckGlError("Error while rendering solid liquids");
     }
 
-    // Token: 0x060001D3 RID: 467 RVA: 0x00008B3C File Offset: 0x00006D3C
     public void OnSetFinalUniforms(ShaderProgramFinal final)
     {
         var ssrOutFB = _framebuffers[1];

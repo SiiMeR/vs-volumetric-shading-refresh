@@ -56,7 +56,7 @@ internal class IceAndGlassPatches
         //IL_001e: Invalid comparison between Unknown and I4
         if ((int)vars.block.BlockMaterial == 10 || (int)vars.block.BlockMaterial == 14)
         {
-            TCTCache obj = vars;
+            var obj = vars;
             obj.VertexFlags |= 0x800;
         }
     }

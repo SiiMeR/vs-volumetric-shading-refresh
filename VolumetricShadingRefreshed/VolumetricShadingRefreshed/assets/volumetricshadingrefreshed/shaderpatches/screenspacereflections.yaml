@@ -76,7 +76,7 @@
   filename: final.fsh
   tokens: min(texture(ssaoScene, texCoord).r, texture(ssaoScene, texCoord - vec2(0, invFrameSize.y*1)).r);
   content: min(texture(ssaoScene, refractedUV).r, texture(ssaoScene, texCoord - vec2(0, invFrameSize.y*1)).r);
-  
+
 - type: token
   filename: final.fsh
   tokens: float ssao = texture(ssaoScene, texCoord).r;

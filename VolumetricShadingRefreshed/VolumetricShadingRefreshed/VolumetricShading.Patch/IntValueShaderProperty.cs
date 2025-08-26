@@ -4,14 +4,14 @@ public class IntValueShaderProperty : ValueShaderProperty
 {
     public delegate int IntValueDelegate();
 
-    public IntValueDelegate IntValueGenerator { get; set; }
-
     public IntValueShaderProperty(string name = null, IntValueDelegate intValueGenerator = null)
     {
-        base.ValueGenerator = GenerateValue;
-        base.Name = name;
+        ValueGenerator = GenerateValue;
+        Name = name;
         IntValueGenerator = intValueGenerator;
     }
+
+    public IntValueDelegate IntValueGenerator { get; set; }
 
     private string GenerateValue()
     {

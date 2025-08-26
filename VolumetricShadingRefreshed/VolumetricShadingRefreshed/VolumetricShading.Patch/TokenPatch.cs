@@ -15,15 +15,27 @@ public class TokenPatch : RegexPatch
 
     private const string RegexSeparator = "\\s+?";
 
+    public TokenPatch(string tokenString)
+        : base(BuildRegex(tokenString))
+    {
+        DoReplace = TokenReplace;
+    }
+
+    public TokenPatch(string filename, string tokenString)
+        : base(filename, BuildRegex(tokenString))
+    {
+        DoReplace = TokenReplace;
+    }
+
     private static Regex BuildRegex(string tokenStr)
     {
-        StringBuilder stringBuilder = new StringBuilder(tokenStr.Length);
-        bool flag = false;
-        bool flag2 = false;
-        string text = tokenStr;
-        for (int i = 0; i < text.Length; i++)
+        var stringBuilder = new StringBuilder(tokenStr.Length);
+        var flag = false;
+        var flag2 = false;
+        var text = tokenStr;
+        for (var i = 0; i < text.Length; i++)
         {
-            char c = text[i];
+            var c = text[i];
             if (char.IsWhiteSpace(c))
             {
                 if (!(flag || flag2))
@@ -51,16 +63,16 @@ public class TokenPatch : RegexPatch
             }
         }
 
-        string text2 = stringBuilder.ToString().Trim();
+        var text2 = stringBuilder.ToString().Trim();
         stringBuilder.Clear();
         stringBuilder.Append("(^|[\\.,+\\-*/;{}[\\]()=:|^&?#\\s])");
-        bool flag3 = true;
-        int num = 0;
+        var flag3 = true;
+        var num = 0;
         text = text2;
-        for (int i = 0; i < text.Length; i++)
+        for (var i = 0; i < text.Length; i++)
         {
-            char c2 = text[i];
-            string text3 = Regex.Escape(c2.ToString());
+            var c2 = text[i];
+            var text3 = Regex.Escape(c2.ToString());
             if (c2 == ' ')
             {
                 if (flag3 && num > 0)
@@ -99,18 +111,6 @@ public class TokenPatch : RegexPatch
 
         stringBuilder.Append("($|[\\.,+\\-*/;{}[\\]()=:|^&?#\\s])");
         return new Regex(stringBuilder.ToString(), RegexOptions.IgnoreCase);
-    }
-
-    public TokenPatch(string tokenString)
-        : base(BuildRegex(tokenString))
-    {
-        DoReplace = TokenReplace;
-    }
-
-    public TokenPatch(string filename, string tokenString)
-        : base(filename, BuildRegex(tokenString))
-    {
-        DoReplace = TokenReplace;
     }
 
     private void TokenReplace(StringBuilder sb, Match match)

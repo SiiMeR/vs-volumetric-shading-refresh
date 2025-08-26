@@ -7,14 +7,14 @@ public class DeferredLightingPreparer : IRenderer, IDisposable
 {
     private readonly DeferredLighting _lighting;
 
-    public double RenderOrder => 0.0;
-
-    public int RenderRange => int.MaxValue;
-
     public DeferredLightingPreparer(DeferredLighting lighting)
     {
         _lighting = lighting;
     }
+
+    public double RenderOrder => 0.0;
+
+    public int RenderRange => int.MaxValue;
 
     public void OnRenderFrame(float deltaTime, EnumRenderStage stage)
     {

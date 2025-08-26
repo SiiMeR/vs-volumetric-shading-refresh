@@ -10,7 +10,7 @@ public class OverexposureEffect
 
     public OverexposureEffect(VolumetricShadingMod mod)
     {
-        mod.CApi.Settings.AddWatcher<int>("volumetricshading_sunBloomIntensity",
+        mod.CApi.Settings.AddWatcher("volumetricshading_sunBloomIntensity",
             (OnSettingsChanged<int>)OnSunBloomChanged);
         _currentBloom = ModSettings.SunBloomIntensity;
         mod.Events.PreSunRender += OnRenderSun;
@@ -19,9 +19,9 @@ public class OverexposureEffect
 
     private void RegisterInjectorProperties(VolumetricShadingMod mod)
     {
-        ShaderInjector shaderInjector = mod.ShaderInjector;
+        var shaderInjector = mod.ShaderInjector;
         shaderInjector.RegisterFloatProperty("VSMOD_OVEREXPOSURE",
-            () => (float)ModSettings.OverexposureIntensity * 0.01f);
+            () => ModSettings.OverexposureIntensity * 0.01f);
         shaderInjector.RegisterBoolProperty("VSMOD_OVEREXPOSURE_ENABLED", () => ModSettings.OverexposureIntensity > 0);
     }
 
@@ -32,14 +32,14 @@ public class OverexposureEffect
 
     public void OnRenderSun(ShaderProgramStandard shader)
     {
-        ((ShaderProgramBase)shader)?.Uniform("extraOutGlow", _currentBloom * 0.01f);
+        shader?.Uniform("extraOutGlow", _currentBloom * 0.01f);
     }
 
     public void OnRenderedSun()
     {
-        ShaderProgramStandard standard = ShaderPrograms.Standard;
-        ((ShaderProgramBase)standard).Use();
-        ((ShaderProgramBase)standard).Uniform("extraOutGlow", 0f);
-        ((ShaderProgramBase)standard).Stop();
+        var standard = ShaderPrograms.Standard;
+        standard.Use();
+        standard.Uniform("extraOutGlow", 0f);
+        standard.Stop();
     }
 }

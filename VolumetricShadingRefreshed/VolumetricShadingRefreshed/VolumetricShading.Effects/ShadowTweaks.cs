@@ -1,7 +1,6 @@
 using System.Collections.Generic;
 using OpenTK.Graphics.OpenGL;
 using Vintagestory.API.Client;
-using Vintagestory.API.Common;
 using Vintagestory.Client.NoObf;
 using volumetricshadingupdated.VolumetricShading.Patch;
 
@@ -11,13 +10,9 @@ public class ShadowTweaks
 {
     private readonly VolumetricShadingMod _mod;
 
-    private bool _softShadowsEnabled;
-
     private int _softShadowSamples;
 
-    public int NearShadowBaseWidth { get; private set; }
-
-    public ISet<string> ExcludedShaders { get; }
+    private bool _softShadowsEnabled;
 
     public ShadowTweaks(VolumetricShadingMod mod)
     {
@@ -25,11 +20,11 @@ public class ShadowTweaks
         //IL_01be: Expected O, but got Unknown
         _mod = mod;
         ExcludedShaders = new HashSet<string> { "sky", "clouds", "gui", "guigear", "guitopsoil", "texture2texture" };
-        _mod.CApi.Settings.AddWatcher<int>("volumetricshading_nearShadowBaseWidth",
+        _mod.CApi.Settings.AddWatcher("volumetricshading_nearShadowBaseWidth",
             (OnSettingsChanged<int>)OnNearShadowBaseWidthChanged);
-        _mod.CApi.Settings.AddWatcher<bool>("volumetricshading_softShadows",
+        _mod.CApi.Settings.AddWatcher("volumetricshading_softShadows",
             (OnSettingsChanged<bool>)OnSoftShadowsChanged);
-        _mod.CApi.Settings.AddWatcher<int>("volumetricshading_softShadowSamples",
+        _mod.CApi.Settings.AddWatcher("volumetricshading_softShadowSamples",
             (OnSettingsChanged<int>)OnSoftShadowSamplesChanged);
         NearShadowBaseWidth = ModSettings.NearShadowBaseWidth;
         _softShadowsEnabled = ModSettings.SoftShadowsEnabled;
@@ -39,9 +34,13 @@ public class ShadowTweaks
         _mod.ShaderInjector.RegisterFloatProperty("VSMOD_FARSHADOWOFFSET", () => ModSettings.FarPeterPanningAdjustment);
         _mod.ShaderInjector.RegisterBoolProperty("VSMOD_SOFTSHADOWS", () => _softShadowsEnabled);
         _mod.ShaderInjector.RegisterIntProperty("VSMOD_SOFTSHADOWSAMPLES", () => _softShadowSamples);
-        _mod.CApi.Event.ReloadShader += new ActionBoolReturn(OnReloadShaders);
+        _mod.CApi.Event.ReloadShader += OnReloadShaders;
         _mod.Events.PostUseShader += OnUseShader;
     }
+
+    public int NearShadowBaseWidth { get; private set; }
+
+    public ISet<string> ExcludedShaders { get; }
 
     private bool OnReloadShaders()
     {
@@ -73,10 +72,10 @@ public class ShadowTweaks
 
         if (!shader.customSamplers.ContainsKey("shadowMapFarTex"))
         {
-            int[] array = new int[2];
-            for (int i = 0; i < array.Length; i++)
+            var array = new int[2];
+            for (var i = 0; i < array.Length; i++)
             {
-                int num = (array[i] = GL.GenSampler());
+                var num = array[i] = GL.GenSampler();
                 GL.SamplerParameter(num, (SamplerParameterName)34892, 0);
                 GL.SamplerParameter(num, (SamplerParameterName)10241, 9728);
                 GL.SamplerParameter(num, (SamplerParameterName)10240, 9728);
@@ -85,10 +84,10 @@ public class ShadowTweaks
                 GL.SamplerParameter(num, (SamplerParameterName)10243, 33069);
             }
 
-            int[] array2 = new int[2];
-            for (int j = 0; j < array2.Length; j++)
+            var array2 = new int[2];
+            for (var j = 0; j < array2.Length; j++)
             {
-                int num2 = (array2[j] = GL.GenSampler());
+                var num2 = array2[j] = GL.GenSampler();
                 GL.SamplerParameter(num2, (SamplerParameterName)34892, 34894);
                 GL.SamplerParameter(num2, (SamplerParameterName)34893, 515);
                 GL.SamplerParameter(num2, (SamplerParameterName)10241, 9729);
@@ -104,9 +103,9 @@ public class ShadowTweaks
             shader.customSamplers["shadowMapNear"] = array2[1];
         }
 
-        List<FrameBufferRef> frameBuffers = _mod.CApi.Render.FrameBuffers;
-        FrameBufferRef val = frameBuffers[11];
-        FrameBufferRef val2 = frameBuffers[12];
+        var frameBuffers = _mod.CApi.Render.FrameBuffers;
+        var val = frameBuffers[11];
+        var val2 = frameBuffers[12];
         shader.BindTexture2D("shadowMapFarTex", val.DepthTextureId);
         shader.BindTexture2D("shadowMapNearTex", val2.DepthTextureId);
         shader.BindTexture2D("shadowMapFar", val.DepthTextureId);

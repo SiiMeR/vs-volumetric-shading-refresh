@@ -65,11 +65,11 @@ void main(void)
     vec3 sunlight = mix(temp, temp2, fract(actualScale));
 
     float rayIntensity = min(pow(shadowIntensity, 2.0f), 1.0f) * 1.2f;
-    vec3 sunColor = sunlight * rayIntensity; // midday
-    
+    vec3 sunColor = sunlight * rayIntensity;// midday
+
     vec3 usedBackColor = mix(vec3(1.0f, 0.1f, 0.3f)*0.75, vec3(0.4f, 0.6f, 1.0f), clamp(height * 5, 0.0, 1.0));
     vec3 sunBackColor = usedBackColor * rayIntensity;
-    
+
     vec3 outColor = moonColor;
     vec3 outBackColor = moonColor;
     if (sunLightStrength > 0.15f) {
@@ -88,7 +88,7 @@ void main(void)
     float fogDensity = clamp((0.03 - flatFogDensity) * 50, 0, 1);
     outColor *= fogDensity;
     outBackColor *= fogDensity;
-    
+
     frontColor = outColor;
     backColor = outBackColor;
 }

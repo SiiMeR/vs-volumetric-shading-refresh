@@ -4,14 +4,14 @@ public class BoolValueShaderProperty : ValueShaderProperty
 {
     public delegate bool BoolValueDelegate();
 
-    public BoolValueDelegate BoolValueGenerator { get; set; }
-
     public BoolValueShaderProperty(string name = null, BoolValueDelegate boolValueGenerator = null)
     {
-        base.ValueGenerator = GenerateValue;
-        base.Name = name;
+        ValueGenerator = GenerateValue;
+        Name = name;
         BoolValueGenerator = boolValueGenerator;
     }
+
+    public BoolValueDelegate BoolValueGenerator { get; set; }
 
     private string GenerateValue()
     {

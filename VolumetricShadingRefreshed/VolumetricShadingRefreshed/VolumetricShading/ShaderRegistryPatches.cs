@@ -33,7 +33,7 @@ internal class ShaderRegistryPatches
     }
 
     [HarmonyPatch("HandleIncludes")]
-    [HarmonyReversePatch( /*Could not decode attribute arguments.*/)]
+    [HarmonyReversePatch]
     public static string HandleIncludes(ShaderProgram program, string code, HashSet<string> filenames)
     {
         throw new InvalidOperationException("Stub, replaced by Harmony");
@@ -43,14 +43,14 @@ internal class ShaderRegistryPatches
     [HarmonyTranspiler]
     public static IEnumerable<CodeInstruction> LoadShaderTranspiler(IEnumerable<CodeInstruction> instructions)
     {
-        bool found = false;
-        foreach (CodeInstruction instruction in instructions)
+        var found = false;
+        foreach (var instruction in instructions)
         {
-            if (CodeInstructionExtensions.Calls(instruction, HandleIncludesMethod))
+            if (instruction.Calls(HandleIncludesMethod))
             {
                 found = true;
-                yield return new CodeInstruction(OpCodes.Ldarg_1, (object)null);
-                yield return new CodeInstruction(OpCodes.Call, (object)LoadShaderCallsiteMethod);
+                yield return new CodeInstruction(OpCodes.Ldarg_1);
+                yield return new CodeInstruction(OpCodes.Call, LoadShaderCallsiteMethod);
             }
             else
             {
@@ -73,10 +73,14 @@ internal class ShaderRegistryPatches
         //IL_000e: Invalid comparison between Unknown and I4
         //IL_0010: Unknown result type (might be due to invalid IL or missing references)
         //IL_0016: Invalid comparison between Unknown and I4
-        string text = (((int)type == 35632)
+        var text = (int)type == 35632
             ? ".fsh"
-            : (((int)type == 35633) ? ".vsh" : (((int)type != 36313) ? ".unknown" : ".gsh")));
-        string filename = ((ShaderProgramBase)shader).PassName + text;
+            : (int)type == 35633
+                ? ".vsh"
+                : (int)type != 36313
+                    ? ".unknown"
+                    : ".gsh";
+        var filename = shader.PassName + text;
         code = VolumetricShadingMod.Instance.ShaderPatcher.Patch(filename, code);
         return HandleIncludes(shader, code, filenames);
     }
@@ -86,16 +90,15 @@ internal class ShaderRegistryPatches
     public static IEnumerable<CodeInstruction> LoadRegisteredShaderProgramsTranspiler(
         IEnumerable<CodeInstruction> instructions)
     {
-        bool found = false;
-        bool generated = false;
-        foreach (CodeInstruction instruction in instructions)
+        var found = false;
+        var generated = false;
+        foreach (var instruction in instructions)
         {
             if (found && !generated)
             {
                 generated = true;
-                yield return CodeInstructionExtensions.WithLabels(
-                    new CodeInstruction(OpCodes.Ldsfld, (object)IncludesField), (IEnumerable<Label>)instruction.labels);
-                yield return new CodeInstruction(OpCodes.Call, (object)LoadRegisteredCallsiteMethod);
+                yield return new CodeInstruction(OpCodes.Ldsfld, IncludesField).WithLabels(instruction.labels);
+                yield return new CodeInstruction(OpCodes.Call, LoadRegisteredCallsiteMethod);
                 instruction.labels.Clear();
             }
 
@@ -115,9 +118,9 @@ internal class ShaderRegistryPatches
     public static void LoadRegisteredCallsite(Dictionary<string, string> includes)
     {
         VolumetricShadingMod.Instance.ShaderPatcher.Reload();
-        foreach (KeyValuePair<string, string> item in includes.ToList())
+        foreach (var item in includes.ToList())
         {
-            string value = VolumetricShadingMod.Instance.ShaderPatcher.Patch(item.Key, item.Value, cache: true);
+            var value = VolumetricShadingMod.Instance.ShaderPatcher.Patch(item.Key, item.Value, true);
             includes[item.Key] = value;
         }
     }

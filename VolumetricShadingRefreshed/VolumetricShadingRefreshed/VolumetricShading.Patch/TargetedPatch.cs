@@ -4,13 +4,12 @@ namespace volumetricshadingupdated.VolumetricShading.Patch;
 
 public abstract class TargetedPatch : IShaderPatch
 {
-    public string TargetFile;
-
     public bool ExactFilename;
+    public string TargetFile;
 
     public bool ShouldPatch(string filename, string code)
     {
-        string text = TargetFile ?? "";
+        var text = TargetFile ?? "";
         if (!ExactFilename)
         {
             return filename.ToLowerInvariant().Contains(text.ToLowerInvariant());

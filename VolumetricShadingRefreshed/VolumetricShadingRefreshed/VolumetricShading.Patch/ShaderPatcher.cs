@@ -7,25 +7,24 @@ namespace volumetricshadingupdated.VolumetricShading.Patch;
 
 public class ShaderPatcher
 {
-    public readonly List<IShaderPatch> Patches = new List<IShaderPatch>();
-
-    public readonly Dictionary<string, string> Cache = new Dictionary<string, string>();
-
     private readonly YamlPatchLoader _yamlPatchLoader;
 
-    public event Action OnReload;
+    public readonly Dictionary<string, string> Cache = new();
+    public readonly List<IShaderPatch> Patches = new();
 
     public ShaderPatcher(ICoreClientAPI capi, string domain)
     {
         _yamlPatchLoader = new YamlPatchLoader(this, domain, capi);
     }
 
+    public event Action OnReload;
+
     public void Reload()
     {
         Cache.Clear();
         Patches.Clear();
         _yamlPatchLoader.Load();
-        this.OnReload?.Invoke();
+        OnReload?.Invoke();
     }
 
     public void AddPatch(IShaderPatch patch)
@@ -88,7 +87,7 @@ public class ShaderPatcher
             return Cache[filename];
         }
 
-        foreach (IShaderPatch item in Patches.Where((IShaderPatch patch) => patch.ShouldPatch(filename, code)))
+        foreach (var item in Patches.Where(patch => patch.ShouldPatch(filename, code)))
         {
             code = item.Patch(filename, code);
         }

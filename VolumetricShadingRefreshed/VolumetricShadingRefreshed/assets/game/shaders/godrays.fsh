@@ -19,11 +19,11 @@ out vec4 outColor;
 
 vec4 applyVolumetricLighting(in vec3 color, in vec2 uv, float intensity) {
     float vgr = texture(glowParts, uv).g;
-    
+
     // Apply Gaussian blur to smooth out the volumetric lighting
     vec2 texelSize = 1.0 / textureSize(glowParts, 0);
     vec4 blurredVGR = vec4(0.0);
-    float blurRadius = 2.0; // Adjust the radius as needed
+    float blurRadius = 2.0;// Adjust the radius as needed
 
     for (float i = -blurRadius; i <= blurRadius; i++) {
         for (float j = -blurRadius; j <= blurRadius; j++) {

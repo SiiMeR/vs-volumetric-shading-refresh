@@ -28,9 +28,9 @@ out vec4 outColor;
 
 float comp = 1.0-zNear/zFar/zFar;
 
-const int maxf = 7;				//number of refinements
-const float ref = 0.11;			//refinement multiplier
-const float inc = 3.0;			//increasement factor at each step
+const int maxf = 7;//number of refinements
+const float ref = 0.11;//refinement multiplier
+const float inc = 3.0;//increasement factor at each step
 
 vec3 nvec3(vec4 pos) {
     return pos.xyz/pos.w;
@@ -39,51 +39,51 @@ vec4 nvec4(vec3 pos) {
     return vec4(pos.xyz, 1.0);
 }
 float cdist(vec2 coord) {
-	return max(abs(coord.s-0.5),abs(coord.t-0.5))*2.0;
+    return max(abs(coord.s-0.5), abs(coord.t-0.5))*2.0;
 }
 
 vec4 raytrace(vec3 fragpos, vec3 rvector) {
     vec4 color = vec4(0.0);
     vec3 start = fragpos;
-	rvector *= 1.2;
+    rvector *= 1.2;
     fragpos += rvector;
-	vec3 tvector = rvector;
+    vec3 tvector = rvector;
     int sr = 0;
-    
+
     bool hit = false;
     vec3 hitFragpos0 = vec3(0);
     vec3 hitPos = vec3(0);
 
-    for(int i = 0; i < 25; ++i) {
+    for (int i = 0; i < 25; ++i) {
         vec3 pos = nvec3(projectionMatrix * nvec4(fragpos)) * 0.5 + 0.5;
-        if(pos.x < 0 || pos.x > 1 || pos.y < 0 || pos.y > 1 || pos.z < 0 || pos.z > 1.0) break;
+        if (pos.x < 0 || pos.x > 1 || pos.y < 0 || pos.y > 1 || pos.z < 0 || pos.z > 1.0) break;
         vec3 fragpos0 = vec3(pos.st, texture(gDepth, pos.st).r);
         fragpos0 = nvec3(invProjectionMatrix * nvec4(fragpos0 * 2.0 - 1.0));
-        float err = distance(fragpos,fragpos0);
+        float err = distance(fragpos, fragpos0);
         bool isFurther = fragpos0.z < start.z;
-		if(err < pow(length(rvector), 1.175) && isFurther) {
+        if (err < pow(length(rvector), 1.175) && isFurther) {
             hit = true;
             hitFragpos0 = fragpos0;
             hitPos = pos;
             sr++;
-            
-            if(sr >= maxf){
+
+            if (sr >= maxf){
                 break;
             }
-            
+
             tvector -= rvector;
             rvector *= ref;
         }
         rvector *= inc;
         tvector += rvector;
-		fragpos = start + tvector;
+        fragpos = start + tvector;
     }
 
     if (hit) {
         color = pow(texture(primaryScene, hitPos.st), vec4(VSMOD_SSR_REFLECTION_DIMMING));
         color.a = clamp(1.0 - pow(cdist(hitPos.st), 20.0), 0.0, 1.0);
     }
-    
+
     return color;
 }
 
@@ -119,8 +119,8 @@ void main(void) {
         reflection.rgb = mix(skyColor.rgb * upness, reflection.rgb, reflection.a);
 
         float normalDotEye = dot(normal, unitPositionFrom);
-        float fresnel = pow(clamp(1.0 + normalDotEye,0.0,1.0), 4.0);
-        fresnel = mix(0.09,1.0,fresnel);
+        float fresnel = pow(clamp(1.0 + normalDotEye, 0.0, 1.0), 4.0);
+        fresnel = mix(0.09, 1.0, fresnel);
 
         outColor = reflection;
         outColor.a = 1.0f;
@@ -133,7 +133,7 @@ void main(void) {
 
         outColor.a *= (1.0f - positionFrom.w) * fresnel;
     }
-    
+
     //outColor.rgb = normal;
     //outColor.a = 1;
 }

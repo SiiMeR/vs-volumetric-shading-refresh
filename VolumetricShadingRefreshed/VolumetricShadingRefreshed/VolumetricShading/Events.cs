@@ -21,31 +21,31 @@ public class Events
 
     public void EmitRebuildFramebuffers(List<FrameBufferRef> framebuffers)
     {
-        this.RebuildFramebuffers?.Invoke(framebuffers);
+        RebuildFramebuffers?.Invoke(framebuffers);
     }
 
     public void EmitPreFinalRender(ShaderProgramFinal final)
     {
-        this.PreFinalRender?.Invoke(final);
+        PreFinalRender?.Invoke(final);
     }
 
     public void EmitPreGodraysRender(ShaderProgramGodrays godrays)
     {
-        this.PreGodraysRender?.Invoke(godrays);
+        PreGodraysRender?.Invoke(godrays);
     }
 
     public void EmitPreSunRender(ShaderProgramStandard standard)
     {
-        this.PreSunRender?.Invoke(standard);
+        PreSunRender?.Invoke(standard);
     }
 
     public void EmitPostUseShader(ShaderProgramBase shader)
     {
-        this.PostUseShader?.Invoke(shader);
+        PostUseShader?.Invoke(shader);
     }
 
     public void EmitPostWaterChangeSight()
     {
-        this.PostWaterChangeSight?.Invoke();
+        PostWaterChangeSight?.Invoke();
     }
 }

@@ -9,34 +9,15 @@ namespace volumetricshadingupdated.VolumetricShading.Patch;
 
 public class YamlPatchLoader
 {
-    private class PatchEntry
-    {
-        public string Type;
+    public static readonly AssetCategory ShaderPatches = new("shaderpatches", false, (EnumAppSide)2);
 
-        public string Filename;
+    public static readonly AssetCategory ShaderSnippets = new("shadersnippets", false, (EnumAppSide)2);
 
-        public string Content;
-
-        public string Snippet;
-
-        public string Tokens;
-
-        public string Regex;
-
-        public bool Multiple;
-
-        public bool Optional;
-    }
-
-    public static readonly AssetCategory ShaderPatches = new AssetCategory("shaderpatches", false, (EnumAppSide)2);
-
-    public static readonly AssetCategory ShaderSnippets = new AssetCategory("shadersnippets", false, (EnumAppSide)2);
-
-    private readonly ShaderPatcher _patcher;
+    private readonly ICoreClientAPI _capi;
 
     private readonly string _domain;
 
-    private readonly ICoreClientAPI _capi;
+    private readonly ShaderPatcher _patcher;
 
     public YamlPatchLoader(ShaderPatcher patcher, string domain, ICoreClientAPI capi)
     {
@@ -47,9 +28,9 @@ public class YamlPatchLoader
 
     public void Load()
     {
-        ((ICoreAPI)_capi).Assets.Reload(ShaderPatches);
-        ((ICoreAPI)_capi).Assets.Reload(ShaderSnippets);
-        foreach (IAsset item in ((ICoreAPI)_capi).Assets.GetMany("shaderpatches", _domain, true))
+        _capi.Assets.Reload(ShaderPatches);
+        _capi.Assets.Reload(ShaderSnippets);
+        foreach (var item in _capi.Assets.GetMany("shaderpatches", _domain))
         {
             LoadFromYaml(item.ToText());
         }
@@ -59,13 +40,13 @@ public class YamlPatchLoader
     {
         //IL_0061: Unknown result type (might be due to invalid IL or missing references)
         //IL_006b: Expected O, but got Unknown
-        foreach (PatchEntry item in new DeserializerBuilder().WithNamingConvention(CamelCaseNamingConvention.Instance)
+        foreach (var item in new DeserializerBuilder().WithNamingConvention(CamelCaseNamingConvention.Instance)
                      .Build().Deserialize<IList<PatchEntry>>(yaml))
         {
-            string content = item.Content;
+            var content = item.Content;
             if (!string.IsNullOrEmpty(item.Snippet))
             {
-                content = ((ICoreAPI)_capi).Assets.Get(new AssetLocation(_domain, "shadersnippets/" + item.Snippet))
+                content = _capi.Assets.Get(new AssetLocation(_domain, "shadersnippets/" + item.Snippet))
                     .ToText();
             }
 
@@ -103,9 +84,9 @@ public class YamlPatchLoader
 
     private void AddRegexPatch(PatchEntry patch, string content)
     {
-        RegexPatch regexPatch = ((patch.Filename == null)
+        var regexPatch = patch.Filename == null
             ? new RegexPatch(patch.Regex)
-            : new RegexPatch(patch.Filename, patch.Regex));
+            : new RegexPatch(patch.Filename, patch.Regex);
         regexPatch.Multiple = patch.Multiple;
         regexPatch.Optional = patch.Optional;
         regexPatch.ReplacementString = content;
@@ -134,5 +115,23 @@ public class YamlPatchLoader
         {
             _patcher.AddAtStart(patch.Filename, content);
         }
+    }
+
+    private class PatchEntry
+    {
+        public string Content;
+
+        public string Filename;
+
+        public bool Multiple;
+
+        public bool Optional;
+
+        public string Regex;
+
+        public string Snippet;
+
+        public string Tokens;
+        public string Type;
     }
 }

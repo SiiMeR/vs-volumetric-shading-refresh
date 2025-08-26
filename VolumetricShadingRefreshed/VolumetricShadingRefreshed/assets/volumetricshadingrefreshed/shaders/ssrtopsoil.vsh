@@ -35,21 +35,21 @@ flat out int renderFlags;
 
 void main(void)
 {
-	vec4 worldPos = vec4(vertexPositionIn + origin, 1.0);
-	
-	worldPos = applyVertexWarping(renderFlagsIn, worldPos);
-	worldPosition = worldPos.xyz + playerpos;
-	
-	vec4 cameraPos = modelViewMatrix * worldPos;
-	cameraPos.w += 0.01;
-	
-	gl_Position = projectionMatrix * cameraPos;
-	
-	uv = uvIn;
+    vec4 worldPos = vec4(vertexPositionIn + origin, 1.0);
 
-	renderFlags = renderFlagsIn;
-	normal = unpackNormal(renderFlagsIn);
-	
-	fragPosition = cameraPos;
-	gnormal = modelViewMatrix * vec4(normal, 0);
+    worldPos = applyVertexWarping(renderFlagsIn, worldPos);
+    worldPosition = worldPos.xyz + playerpos;
+
+    vec4 cameraPos = modelViewMatrix * worldPos;
+    cameraPos.w += 0.01;
+
+    gl_Position = projectionMatrix * cameraPos;
+
+    uv = uvIn;
+
+    renderFlags = renderFlagsIn;
+    normal = unpackNormal(renderFlagsIn);
+
+    fragPosition = cameraPos;
+    gnormal = modelViewMatrix * vec4(normal, 0);
 }

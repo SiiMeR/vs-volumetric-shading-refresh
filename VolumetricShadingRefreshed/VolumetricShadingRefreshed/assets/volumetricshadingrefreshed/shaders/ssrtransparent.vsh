@@ -36,29 +36,29 @@ out vec4 gnormal;
 
 void main(void)
 {
-	vec4 worldPos = vec4(vertexPositionIn + origin, 1.0);
-	
-	worldPos = applyVertexWarping(renderFlagsIn, worldPos);
+    vec4 worldPos = vec4(vertexPositionIn + origin, 1.0);
 
-	vec4 cameraPos = modelViewMatrix * worldPos;
-	
-	gl_Position = projectionMatrix * cameraPos;
-	
-	fragWorldPos = worldPos.xyz + playerpos;
-	
-	calcColorMapUvs(colormapData, vec4(vertexPositionIn + origin, 1.0) + vec4(playerpos, 1), rgbaLightIn.a, false);
-	
-	uv = uvIn;
-	
-	// Lower 8 bit is glow level
-	renderFlags = renderFlagsIn;  
-	
-	// Now the lowest 3 bits are used as an unsigned number 
-	// to fix Z-Fighting on blocks over certain other blocks. 
-	if (renderFlags > 0 && gl_Position.z > 0) {
-		gl_Position.w += (renderFlags & 7) * 0.00025 / max(0.1, gl_Position.z);
-	}
-	
-	gnormal = modelViewMatrix * vec4(unpackNormal(renderFlagsIn).xyz, 0);
-	gposition = cameraPos;
+    worldPos = applyVertexWarping(renderFlagsIn, worldPos);
+
+    vec4 cameraPos = modelViewMatrix * worldPos;
+
+    gl_Position = projectionMatrix * cameraPos;
+
+    fragWorldPos = worldPos.xyz + playerpos;
+
+    calcColorMapUvs(colormapData, vec4(vertexPositionIn + origin, 1.0) + vec4(playerpos, 1), rgbaLightIn.a, false);
+
+    uv = uvIn;
+
+    // Lower 8 bit is glow level
+    renderFlags = renderFlagsIn;
+
+    // Now the lowest 3 bits are used as an unsigned number 
+    // to fix Z-Fighting on blocks over certain other blocks. 
+    if (renderFlags > 0 && gl_Position.z > 0) {
+        gl_Position.w += (renderFlags & 7) * 0.00025 / max(0.1, gl_Position.z);
+    }
+
+    gnormal = modelViewMatrix * vec4(unpackNormal(renderFlagsIn).xyz, 0);
+    gposition = cameraPos;
 }

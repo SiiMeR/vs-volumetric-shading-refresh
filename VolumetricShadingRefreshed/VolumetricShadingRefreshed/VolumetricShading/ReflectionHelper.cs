@@ -16,9 +16,9 @@ public static class ReflectionHelper
 
     public static ClientPlatformAbstract GetClientPlatformAbstract(this ClientMain client)
     {
-        FieldInfo field = typeof(ClientMain).GetField("Platform", BindingFlags.Instance | BindingFlags.Public);
-        ClientPlatformAbstract clientPlatformAbstract =
-            (ClientPlatformAbstract)((field != null) ? field.GetValue(client) : null);
+        var field = typeof(ClientMain).GetField("Platform", BindingFlags.Instance | BindingFlags.Public);
+        var clientPlatformAbstract =
+            (ClientPlatformAbstract)(field != null ? field.GetValue(client) : null);
         if (clientPlatformAbstract == null)
         {
             throw new Exception("Could not fetch platform via reflection!");
@@ -46,8 +46,8 @@ public static class ReflectionHelper
 
     public static ChunkRenderer GetChunkRenderer(this ClientMain client)
     {
-        FieldInfo field = typeof(ClientMain).GetField("chunkRenderer", BindingFlags.Instance | BindingFlags.NonPublic);
-        ChunkRenderer chunkRenderer = (ChunkRenderer)((field != null) ? field.GetValue(client) : null);
+        var field = typeof(ClientMain).GetField("chunkRenderer", BindingFlags.Instance | BindingFlags.NonPublic);
+        var chunkRenderer = (ChunkRenderer)(field != null ? field.GetValue(client) : null);
         if (chunkRenderer == null)
         {
             throw new Exception("Could not fetch chunk renderer!");
@@ -59,9 +59,9 @@ public static class ReflectionHelper
 
     public static MeshRef GetScreenQuad(this ClientPlatformWindows platform)
     {
-        FieldInfo field =
+        var field =
             typeof(ClientPlatformWindows).GetField("screenQuad", BindingFlags.Instance | BindingFlags.NonPublic);
-        MeshRef meshRef = (MeshRef)((field != null) ? field.GetValue(platform) : null);
+        var meshRef = (MeshRef)(field != null ? field.GetValue(platform) : null);
         if (meshRef == null)
         {
             throw new Exception("Could not fetch screen quad");
@@ -72,7 +72,7 @@ public static class ReflectionHelper
 
     public static void TriggerOnlyOnMouseUp(this GuiElementSlider slider, bool trigger = true)
     {
-        MethodInfo method =
+        var method =
             typeof(GuiElementSlider).GetMethod("TriggerOnlyOnMouseUp", BindingFlags.Instance | BindingFlags.NonPublic);
         if (method == null)
         {
