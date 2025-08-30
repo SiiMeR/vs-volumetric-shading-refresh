@@ -13,7 +13,7 @@
   "description": "Adds multiple shader changes to the game. (unofficial update of an unofficial update of a Continuation)",
   "version": "0.99.0",
   "side": "Client",
-  "dependency": {
+  "dependencies": {
     "game": ""
   }
 }
