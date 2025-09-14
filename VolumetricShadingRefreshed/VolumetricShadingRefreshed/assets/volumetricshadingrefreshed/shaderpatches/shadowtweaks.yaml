@@ -1,3 +1,6 @@
+# DEPRECATED: This file is being replaced by shadowtweaks_simplified.yaml
+# Soft shadow functionality moved to dedicated SoftShadowRenderer
+
 - type: token
   filename: fogandlight.fsh
   tokens: shadowCoordsFar.z - 0.0009)

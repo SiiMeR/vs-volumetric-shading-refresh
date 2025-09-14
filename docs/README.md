@@ -11,9 +11,25 @@ The **Volumetric Shading Refreshed** mod for Vintage Story is an advanced shader
 - **Overexposure Effects** - HDR-like bloom and exposure adjustments
 - **Underwater Enhancements** - Improved underwater visuals
 
+## Analysis Summary
+
+**Key Finding**: Through comprehensive analysis of the codebase and Vintage Story's official modding APIs, we've identified that **~60% of the current complex YAML-based shader patching system can be replaced** with official APIs, while **~40% legitimately requires core shader modification**.
+
+**See**: [`required-changes.md`](./required-changes.md) for detailed analysis of what needs to change.
+
 ## Current Issues
 
-### 1. AMD Graphics Card Compatibility Problems
+### 1. Overcomplicated Architecture (Root Cause of Many Issues)
+
+**Core Problem**: The mod uses an extremely complex YAML-based string manipulation system to patch shaders, when most effects could be implemented as dedicated renderers using official Vintage Story APIs.
+
+**Impact**: This complexity causes:
+- Difficult AMD compatibility debugging
+- Hard-to-track configuration issues  
+- Performance overhead from runtime string processing
+- Maintenance burden with 6 YAML files defining 83+ individual patches
+
+### 2. AMD Graphics Card Compatibility Problems
 
 **Root Causes Identified:**
 
@@ -123,14 +139,20 @@ The mod uses a sophisticated patching system:
    - Monitor performance impact
    - Report specific errors with hardware information
 
-## Architecture Strengths
+## Architecture Assessment
 
-Despite the issues, the mod demonstrates good architectural patterns:
+**Strengths** (Keep these):
+- **Modular Design**: Separate effects that can be enabled/disabled independently ✅
+- **Configuration System**: Comprehensive settings management ✅
+- **Event-Driven**: Proper integration with Vintage Story's rendering pipeline ✅
+- **Effect Quality**: Visual results are excellent ✅
 
-- **Modular Design**: Separate effects that can be enabled/disabled independently
-- **Configuration System**: Comprehensive settings management
-- **Shader Patching**: Flexible system for modifying existing shaders
-- **Event-Driven**: Proper integration with Vintage Story's rendering pipeline
+**Over-Engineering** (Simplify these):
+- **YAML-Based Shader Patching**: Overcomplicated for most use cases ❌
+- **Complex String Manipulation**: Runtime shader generation adds overhead ❌
+- **Extensive Harmony Patching**: More than necessary for most effects ❌
+
+**Solution**: Hybrid approach using official APIs where possible, core patches where necessary.
 
 ## Hardware Requirements
 

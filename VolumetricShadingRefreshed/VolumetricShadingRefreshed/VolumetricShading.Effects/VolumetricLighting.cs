@@ -1,5 +1,7 @@
+using System;
 using System.Reflection;
 using Vintagestory.API.Client;
+using Vintagestory.API.MathTools;
 using Vintagestory.Client.NoObf;
 using volumetricshadingupdated.VolumetricShading.Patch;
 
@@ -73,22 +75,82 @@ public class VolumetricLighting
 
         var num = (float)obj;
         var eyesInWaterDepth = _game.playerProperties.EyesInWaterDepth;
-        rays.Uniform("moonLightStrength", calendar.MoonLightStrength);
-        rays.Uniform("sunLightStrength", calendar.SunLightStrength);
-        rays.Uniform("dayLightStrength", calendar.DayLightStrength);
-        rays.Uniform("shadowIntensity", num);
-        rays.Uniform("flatFogDensity", ambient.BlendedFlatFogDensity);
-        rays.Uniform("playerWaterDepth", eyesInWaterDepth);
-        rays.Uniform("fogColor", ambient.BlendedFogColor);
-        rays.UniformMatrix("invProjectionMatrix", uniforms.InvProjectionMatrix);
-        rays.UniformMatrix("invModelViewMatrix", uniforms.InvModelViewMatrix);
+        TrySetUniform(rays, "moonLightStrength", calendar.MoonLightStrength);
+        TrySetUniform(rays, "sunLightStrength", calendar.SunLightStrength);
+        TrySetUniform(rays, "dayLightStrength", calendar.DayLightStrength);
+        TrySetUniform(rays, "shadowIntensity", num);
+        TrySetUniform(rays, "flatFogDensity", ambient.BlendedFlatFogDensity);
+        TrySetUniform(rays, "playerWaterDepth", eyesInWaterDepth);
+        TrySetUniform(rays, "fogColor", ambient.BlendedFogColor);
+        TrySetUniformMatrix(rays, "invProjectionMatrix", uniforms.InvProjectionMatrix);
+        TrySetUniformMatrix(rays, "invModelViewMatrix", uniforms.InvModelViewMatrix);
     }
 
     private void OnPostUseShader(ShaderProgramBase shader)
     {
         if (_enabled && shader.includes.Contains("shadowcoords.vsh"))
         {
-            shader.Uniform("cameraWorldPosition", _mod.Uniforms.CameraWorldPosition);
+            TrySetUniform(shader, "cameraWorldPosition", _mod.Uniforms.CameraWorldPosition);
+        }
+    }
+
+    /// <summary>
+    /// Safe uniform setting with error handling to prevent KeyNotFoundException crashes
+    /// </summary>
+    private void TrySetUniform(IShaderProgram shader, string uniformName, float value)
+    {
+        try
+        {
+            shader.Uniform(uniformName, value);
+        }
+        catch (System.Collections.Generic.KeyNotFoundException)
+        {
+            // Uniform doesn't exist in shader, silently ignore
+            _mod.Mod.Logger.Debug($"Volumetric uniform '{uniformName}' not found in shader, skipping");
+        }
+        catch (Exception ex)
+        {
+            _mod.Mod.Logger.Warning($"Failed to set volumetric uniform '{uniformName}': {ex.Message}");
+        }
+    }
+
+    /// <summary>
+    /// Safe uniform setting for Vec4f values
+    /// </summary>
+    private void TrySetUniform(IShaderProgram shader, string uniformName, Vec4f value)
+    {
+        try
+        {
+            shader.Uniform(uniformName, value);
+        }
+        catch (System.Collections.Generic.KeyNotFoundException)
+        {
+            // Uniform doesn't exist in shader, silently ignore
+            _mod.Mod.Logger.Debug($"Volumetric uniform '{uniformName}' not found in shader, skipping");
+        }
+        catch (Exception ex)
+        {
+            _mod.Mod.Logger.Warning($"Failed to set volumetric uniform '{uniformName}': {ex.Message}");
+        }
+    }
+
+    /// <summary>
+    /// Safe uniform matrix setting with error handling
+    /// </summary>
+    private void TrySetUniformMatrix(IShaderProgram shader, string uniformName, float[] matrix)
+    {
+        try
+        {
+            shader.UniformMatrix(uniformName, matrix);
+        }
+        catch (System.Collections.Generic.KeyNotFoundException)
+        {
+            // Uniform doesn't exist in shader, silently ignore
+            _mod.Mod.Logger.Debug($"Volumetric matrix uniform '{uniformName}' not found in shader, skipping");
+        }
+        catch (Exception ex)
+        {
+            _mod.Mod.Logger.Warning($"Failed to set volumetric matrix uniform '{uniformName}': {ex.Message}");
         }
     }
 }

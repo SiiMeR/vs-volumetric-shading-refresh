@@ -29,7 +29,9 @@ void main()
 
     float noise = gnoise(worldPosition * 10);
     noise += cnoise(worldPosition * 50) * 0.5;
-    float alpha = 1.0 - pow(rainStrength, 0.7);
+    // Clamp rainStrength to prevent artifacts from extreme values
+    float clampedRainStrength = clamp(rainStrength, 0.0, 2.0);
+    float alpha = 1.0 - pow(clampedRainStrength, 0.7);
 
     if (normal.y <= 0) {
         alpha = 1.0 - (1.0 - alpha) * 0.3;

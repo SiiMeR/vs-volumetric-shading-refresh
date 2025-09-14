@@ -1,4 +1,5 @@
 using System;
+using System.Diagnostics;
 using HarmonyLib;
 using Vintagestory.API.Client;
 using Vintagestory.API.Common;
@@ -9,9 +10,10 @@ using volumetricshadingupdated.VolumetricShading.Patch;
 
 namespace volumetricshadingupdated.VolumetricShading;
 
-public class VolumetricShadingMod : ModSystem
+public class VolumetricShadingMod : ModSystem, IRenderer
 {
     private Harmony _harmony;
+    private double _lastFrameTime;
 
     public ConfigGui ConfigGui;
 
@@ -45,9 +47,24 @@ public class VolumetricShadingMod : ModSystem
     // (set) Token: 0x060000DC RID: 220 RVA: 0x00002A97 File Offset: 0x00000C97
     public ShaderInjector ShaderInjector { get; private set; }
 
+    /// <summary>
+    /// Modern shader uniform manager that replaces string-based injection
+    /// </summary>
+    public ShaderUniformManager ShaderUniformManager { get; private set; }
+
     // (get) Token: 0x060000DD RID: 221 RVA: 0x00002AA0 File Offset: 0x00000CA0
     // (set) Token: 0x060000DE RID: 222 RVA: 0x00002AA8 File Offset: 0x00000CA8
     public ScreenSpaceReflections ScreenSpaceReflections { get; private set; }
+
+    /// <summary>
+    /// Performance monitoring and automatic quality adjustment
+    /// </summary>
+    public PerformanceManager PerformanceManager { get; private set; }
+
+    /// <summary>
+    /// Debug command manager for performance analysis and testing
+    /// </summary>
+    public DebugCommandManager DebugCommandManager { get; private set; }
 
     // (get) Token: 0x060000DF RID: 223 RVA: 0x00002AB1 File Offset: 0x00000CB1
     // (set) Token: 0x060000E0 RID: 224 RVA: 0x00002AB9 File Offset: 0x00000CB9
@@ -73,15 +90,19 @@ public class VolumetricShadingMod : ModSystem
     // (set) Token: 0x060000EA RID: 234 RVA: 0x00002B0E File Offset: 0x00000D0E
     public UnderwaterTweaks UnderwaterTweaks { get; private set; }
 
+    /// <summary>
+    /// Modern overexposure renderer using dedicated post-process shaders
+    /// </summary>
+    public OverexposureRenderer OverexposureRenderer { get; private set; }
+
+    /// <summary>
+    /// Modern blur renderer with separable Gaussian blur
+    /// </summary>
+    public BlurRenderer BlurRenderer { get; private set; }
+
     public override bool ShouldLoad(EnumAppSide forSide)
     {
         return forSide == EnumAppSide.Client;
-    }
-
-    public override void StartClientSide(ICoreClientAPI api)
-    {
-        RegisterHotkeys();
-        PatchGame();
     }
 
     public override void StartPre(ICoreAPI api)
@@ -105,14 +126,46 @@ public class VolumetricShadingMod : ModSystem
 
         ShaderPatcher = new ShaderPatcher(CApi, Mod.Info.ModID);
         ShaderInjector = new ShaderInjector(CApi, Mod.Info.ModID);
+        ShaderUniformManager = new ShaderUniformManager(this);
+        
         VolumetricLighting = new VolumetricLighting(this);
         ScreenSpaceReflections = new ScreenSpaceReflections(this);
+        
+        // Modern effect renderers replacing YAML-based patches
+        OverexposureRenderer = new OverexposureRenderer(this);
+        BlurRenderer = new BlurRenderer(this);
+        
+        // Legacy effects (to be modernized in future phases)
         OverexposureEffect = new OverexposureEffect(this);
         ScreenSpaceDirectionalOcclusion = new ScreenSpaceDirectionalOcclusion(this);
         ShadowTweaks = new ShadowTweaks(this);
         DeferredLighting = new DeferredLighting(this);
         UnderwaterTweaks = new UnderwaterTweaks(this);
+        
+        PerformanceManager = new PerformanceManager(this);
+        DebugCommandManager = new DebugCommandManager(this);
         ShaderInjector.Debug = Debug;
+    }
+
+    public override void StartClientSide(ICoreClientAPI api)
+    {
+        // AMD Compatibility: Apply hardware-specific settings after OpenGL context is available
+        CompatibilityManager.ApplyCompatibilitySettings();
+        
+        // Start performance monitoring
+        CApi.Event.RegisterRenderer(this, EnumRenderStage.Before, "vsmod-performance-monitor");
+        
+        // Register modern effect renderers
+        CApi.Event.RegisterRenderer(OverexposureRenderer, EnumRenderStage.AfterOIT, "vsmod-overexposure-modern");
+        CApi.Event.RegisterRenderer(BlurRenderer, EnumRenderStage.AfterBloom, "vsmod-blur-modern");
+        
+        // Register debug commands
+        DebugCommandManager.RegisterCommands();
+        
+        RegisterHotkeys();
+        PatchGame();
+        
+        Mod.Logger.Event("Volumetric Shading Mod initialized with performance monitoring");
     }
 
     private void RegisterHotkeys()
@@ -215,6 +268,7 @@ public class VolumetricShadingMod : ModSystem
 
         if (!ModSettings.DeferredLightingEnabledSet)
         {
+            // AMD Compatibility: Start with conservative defaults, let users enable manually
             ModSettings.DeferredLightingEnabled = false;
         }
     }
@@ -236,12 +290,89 @@ public class VolumetricShadingMod : ModSystem
         return true;
     }
 
+    #region IRenderer Implementation for Performance Monitoring
+    
+    public double RenderOrder => -1.0; // Render first to capture frame timing
+    public int RenderRange => 9999;
+
+    public void OnRenderFrame(float deltaTime, EnumRenderStage stage)
+    {
+        if (stage == EnumRenderStage.Before)
+        {
+            // Update performance metrics
+            PerformanceManager?.UpdateFrameTiming(deltaTime);
+            _lastFrameTime = deltaTime;
+        }
+    }
+    
+    #endregion
+
+    /// <summary>
+    /// Modern shader registration helper that integrates with ShaderUniformManager
+    /// </summary>
+    public IShaderProgram RegisterModernShader(string shaderName)
+    {
+        try
+        {
+            var shader = CApi.Shader.NewShaderProgram()
+                .WithName(shaderName)
+                .WithVertexShader(CApi.Assets.Get(new AssetLocation(Mod.Info.ModID, $"shaders/{shaderName}.vsh")))
+                .WithFragmentShader(CApi.Assets.Get(new AssetLocation(Mod.Info.ModID, $"shaders/{shaderName}.fsh")))
+                .WithUniformProvider(() => ShaderUniformManager?.UpdateShaderUniforms(shader))
+                .Compile();
+                
+            if (shader != null)
+            {
+                Mod.Logger.Event($"Modern shader '{shaderName}' registered successfully");
+            }
+            else
+            {
+                Mod.Logger.Error($"Failed to register modern shader '{shaderName}'");
+            }
+            
+            return shader;
+        }
+        catch (Exception ex)
+        {
+            Mod.Logger.Error($"Exception registering modern shader '{shaderName}': {ex.Message}");
+            return null;
+        }
+    }
+
+    /// <summary>
+    /// Legacy shader registration for compatibility (delegates to existing system)
+    /// </summary>
+    public object RegisterShader(string shaderName, ref bool success)
+    {
+        try
+        {
+            // This maintains compatibility with existing code while we transition
+            var shader = CApi.Shader.GetShader(shaderName);
+            success = shader != null;
+            return shader;
+        }
+        catch (Exception ex)
+        {
+            Mod.Logger.Error($"Exception in legacy shader registration '{shaderName}': {ex.Message}");
+            success = false;
+            return null;
+        }
+    }
+
     public override void Dispose()
     {
         if (CApi == null)
         {
             return;
         }
+
+        // Clean up performance manager
+        PerformanceManager?.Reset();
+
+        // Dispose modern renderers
+        OverexposureRenderer?.Dispose();
+        BlurRenderer?.Dispose();
+        ShaderUniformManager?.Dispose();
 
         ShadowTweaks.Dispose();
         var harmony = _harmony;

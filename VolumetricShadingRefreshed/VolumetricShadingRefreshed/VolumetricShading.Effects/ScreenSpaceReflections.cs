@@ -227,82 +227,137 @@ public class ScreenSpaceReflections : IRenderer, IDisposable
             }
         }
 
-        _fbWidth = (int)(_platform.window.Bounds.Size.X * ClientSettings.SSAA);
-        _fbHeight = (int)(_platform.window.Bounds.Size.Y * ClientSettings.SSAA);
+        // AMD Compatibility: Fix windowed mode calculations
+        var bounds = _platform.window.Bounds.Size;
+        _fbWidth = (int)(bounds.X * ClientSettings.SSAA);
+        _fbHeight = (int)(bounds.Y * ClientSettings.SSAA);
+        
+        // Ensure minimum dimensions for AMD compatibility
+        _fbWidth = Math.Max(_fbWidth, 64);
+        _fbHeight = Math.Max(_fbHeight, 64);
+        
         if (_fbWidth == 0 || _fbHeight == 0)
         {
+            _mod.Mod.Logger.Warning($"Invalid framebuffer dimensions: {_fbWidth}x{_fbHeight}");
             return;
         }
 
-        var framebuffer = new FrameBufferRef
+        // AMD Compatibility: Enhanced framebuffer creation with proper error checking
+        var framebuffer = CreateFramebufferSafely(_fbWidth, _fbHeight, _refractionsEnabled ? 4 : 3, true, "SSR Main");
+        if (framebuffer == null)
         {
-            FboId = GL.GenFramebuffer(),
-            Width = _fbWidth,
-            Height = _fbHeight,
-            DepthTextureId = GL.GenTexture()
-        };
-        GL.BindFramebuffer(FramebufferTarget.Framebuffer, framebuffer.FboId);
-        framebuffer.SetupDepthTexture();
-        framebuffer.ColorTextureIds = ArrayUtil.CreateFilled(_refractionsEnabled ? 4 : 3, _ => GL.GenTexture());
-        framebuffer.SetupVertexTexture(0);
-        framebuffer.SetupVertexTexture(1);
-        framebuffer.SetupColorTexture(2);
-        if (_refractionsEnabled)
-        {
-            framebuffer.SetupVertexTexture(3);
+            _mod.Mod.Logger.Error("Failed to create main SSR framebuffer");
+            return;
         }
-
-        if (_refractionsEnabled)
-        {
-            GL.DrawBuffers(4, new[]
-            {
-                DrawBuffersEnum.ColorAttachment0,
-                DrawBuffersEnum.ColorAttachment1,
-                DrawBuffersEnum.ColorAttachment2,
-                DrawBuffersEnum.ColorAttachment3
-            });
-        }
-        else
-        {
-            GL.DrawBuffers(3, new[]
-            {
-                DrawBuffersEnum.ColorAttachment0,
-                DrawBuffersEnum.ColorAttachment1,
-                DrawBuffersEnum.ColorAttachment2
-            });
-        }
-
-        Framebuffers.CheckStatus();
         _framebuffers[0] = framebuffer;
-        framebuffer = new FrameBufferRef
+        // AMD Compatibility: Create output framebuffer with error checking
+        framebuffer = CreateFramebufferSafely(_fbWidth, _fbHeight, 1, false, "SSR Output");
+        if (framebuffer == null)
         {
-            FboId = GL.GenFramebuffer(),
-            Width = _fbWidth,
-            Height = _fbHeight
-        };
-        GL.BindFramebuffer(FramebufferTarget.Framebuffer, framebuffer.FboId);
-        framebuffer.ColorTextureIds = new[] { GL.GenTexture() };
-        framebuffer.SetupColorTexture(0);
-        GL.DrawBuffer(DrawBufferMode.ColorAttachment0);
-        Framebuffers.CheckStatus();
+            _mod.Mod.Logger.Error("Failed to create SSR output framebuffer");
+            return;
+        }
         _framebuffers[1] = framebuffer;
         if (_causticsEnabled)
         {
-            framebuffer = new FrameBufferRef
+            // AMD Compatibility: Create caustics framebuffer with error checking
+            framebuffer = CreateFramebufferSafely(_fbWidth, _fbHeight, 1, false, "SSR Caustics", true);
+            if (framebuffer == null)
             {
-                FboId = GL.GenFramebuffer(),
-                Width = _fbWidth,
-                Height = _fbHeight
-            };
-            GL.BindFramebuffer(FramebufferTarget.Framebuffer, framebuffer.FboId);
-            framebuffer.ColorTextureIds = new[] { GL.GenTexture() };
-            framebuffer.SetupSingleColorTexture(0);
-            GL.DrawBuffer(DrawBufferMode.ColorAttachment0);
-            Framebuffers.CheckStatus();
-            _framebuffers[2] = framebuffer;
+                _mod.Mod.Logger.Warning("Failed to create caustics framebuffer, disabling caustics");
+                _causticsEnabled = false;
+            }
+            else
+            {
+                _framebuffers[2] = framebuffer;
+            }
         }
 
         _screenQuad = _platform.GetScreenQuad();
+    }
+
+    /// <summary>
+    /// AMD Compatibility: Create framebuffer with proper error checking and fallback mechanisms
+    /// </summary>
+    private FrameBufferRef CreateFramebufferSafely(int width, int height, int colorAttachments, bool needsDepth, string name, bool singleChannel = false)
+    {
+        try
+        {
+            var framebuffer = new FrameBufferRef
+            {
+                FboId = GL.GenFramebuffer(),
+                Width = width,
+                Height = height
+            };
+
+            GL.BindFramebuffer(FramebufferTarget.Framebuffer, framebuffer.FboId);
+
+            // Setup depth buffer if needed
+            if (needsDepth)
+            {
+                framebuffer.DepthTextureId = GL.GenTexture();
+                framebuffer.SetupDepthTexture();
+            }
+
+            // Setup color attachments
+            framebuffer.ColorTextureIds = new int[colorAttachments];
+            for (int i = 0; i < colorAttachments; i++)
+            {
+                framebuffer.ColorTextureIds[i] = GL.GenTexture();
+                if (singleChannel)
+                {
+                    framebuffer.SetupSingleColorTexture(i);
+                }
+                else if (i < 2)
+                {
+                    framebuffer.SetupVertexTexture(i);
+                }
+                else
+                {
+                    framebuffer.SetupColorTexture(i);
+                }
+            }
+
+            // Setup draw buffers
+            if (colorAttachments == 1)
+            {
+                GL.DrawBuffer(DrawBufferMode.ColorAttachment0);
+            }
+            else
+            {
+                var drawBuffers = new DrawBuffersEnum[colorAttachments];
+                for (int i = 0; i < colorAttachments; i++)
+                {
+                    drawBuffers[i] = DrawBuffersEnum.ColorAttachment0 + i;
+                }
+                GL.DrawBuffers(colorAttachments, drawBuffers);
+            }
+
+            // AMD Compatibility: Check framebuffer completeness
+            var status = GL.CheckFramebufferStatus(FramebufferTarget.Framebuffer);
+            if (status != FramebufferErrorCode.FramebufferComplete)
+            {
+                _mod.Mod.Logger.Error($"Framebuffer '{name}' incomplete: {status}");
+                
+                // Cleanup on failure
+                GL.DeleteFramebuffer(framebuffer.FboId);
+                if (framebuffer.DepthTextureId != 0)
+                    GL.DeleteTexture(framebuffer.DepthTextureId);
+                foreach (var texId in framebuffer.ColorTextureIds)
+                    GL.DeleteTexture(texId);
+                
+                return null;
+            }
+
+            Framebuffers.CheckStatus();
+            _mod.Mod.Logger.VerboseDebug($"Successfully created framebuffer '{name}' ({width}x{height}, {colorAttachments} attachments)");
+            return framebuffer;
+        }
+        catch (Exception ex)
+        {
+            _mod.Mod.Logger.Error($"Exception creating framebuffer '{name}': {ex.Message}");
+            return null;
+        }
     }
 
     private void OnPreRender(float dt)
@@ -313,7 +368,8 @@ public class ScreenSpaceReflections : IRenderer, IDisposable
             _rainAccumulator = 0f;
             var climate = _game.BlockAccessor.GetClimateAt(_game.EntityPlayer.Pos.AsBlockPos);
             var rainMul = GameMath.Clamp((climate.Temperature + 1f) / 4f, 0f, 1f);
-            _targetRain = climate.Rainfall * rainMul;
+            // Clamp rain calculation to prevent extreme values that cause shader artifacts
+            _targetRain = GameMath.Clamp(climate.Rainfall * rainMul, 0f, 2.0f);
         }
 
         if (_targetRain > _currentRain)
@@ -358,16 +414,16 @@ public class ScreenSpaceReflections : IRenderer, IDisposable
         shader.BindTexture2D("gNormal", ssrFB.ColorTextureIds[1], 2);
         shader.BindTexture2D("gDepth", _platform.FrameBuffers[0].DepthTextureId, 3);
         shader.BindTexture2D("gTint", ssrFB.ColorTextureIds[2], 4);
-        shader.UniformMatrix("projectionMatrix", _mod.CApi.Render.CurrentProjectionMatrix);
-        shader.UniformMatrix("invProjectionMatrix", myUniforms.InvProjectionMatrix);
-        shader.UniformMatrix("invModelViewMatrix", myUniforms.InvModelViewMatrix);
-        shader.Uniform("zFar", uniforms.ZNear);
-        shader.Uniform("sunPosition", _mod.CApi.World.Calendar.SunPositionNormalized);
-        shader.Uniform("dayLight", myUniforms.DayLight);
-        shader.Uniform("horizonFog", ambient.BlendedCloudDensity);
-        shader.Uniform("fogDensityIn", ambient.BlendedFogDensity);
-        shader.Uniform("fogMinIn", ambient.BlendedFogMin);
-        shader.Uniform("rgbaFog", ambient.BlendedFogColor);
+        TrySetUniformMatrix(shader, "projectionMatrix", _mod.CApi.Render.CurrentProjectionMatrix);
+        TrySetUniformMatrix(shader, "invProjectionMatrix", myUniforms.InvProjectionMatrix);
+        TrySetUniformMatrix(shader, "invModelViewMatrix", myUniforms.InvModelViewMatrix);
+        TrySetUniform(shader, "zFar", uniforms.ZNear);
+        TrySetUniform(shader, "sunPosition", _mod.CApi.World.Calendar.SunPositionNormalized);
+        TrySetUniform(shader, "dayLight", myUniforms.DayLight);
+        TrySetUniform(shader, "horizonFog", ambient.BlendedCloudDensity);
+        TrySetUniform(shader, "fogDensityIn", ambient.BlendedFogDensity);
+        TrySetUniform(shader, "fogMinIn", ambient.BlendedFogMin);
+        TrySetUniform(shader, "rgbaFog", ambient.BlendedFogColor);
         _platform.RenderFullscreenTriangle(_screenQuad);
         shader.Stop();
         _platform.CheckGlError("Error while calculating SSR");
@@ -379,28 +435,28 @@ public class ScreenSpaceReflections : IRenderer, IDisposable
             shader.Use();
             shader.BindTexture2D("gDepth", _platform.FrameBuffers[0].DepthTextureId, 0);
             shader.BindTexture2D("gNormal", ssrFB.ColorTextureIds[1], 1);
-            shader.UniformMatrix("invProjectionMatrix", myUniforms.InvProjectionMatrix);
-            shader.UniformMatrix("invModelViewMatrix", myUniforms.InvModelViewMatrix);
-            shader.Uniform("dayLight", myUniforms.DayLight);
-            shader.Uniform("playerPos", uniforms.PlayerPos);
-            shader.Uniform("sunPosition", uniforms.SunPosition3D);
-            shader.Uniform("waterFlowCounter", uniforms.WaterFlowCounter);
+            TrySetUniformMatrix(shader, "invProjectionMatrix", myUniforms.InvProjectionMatrix);
+            TrySetUniformMatrix(shader, "invModelViewMatrix", myUniforms.InvModelViewMatrix);
+            TrySetUniform(shader, "dayLight", myUniforms.DayLight);
+            TrySetUniform(shader, "playerPos", uniforms.PlayerPos);
+            TrySetUniform(shader, "sunPosition", uniforms.SunPosition3D);
+            TrySetUniform(shader, "waterFlowCounter", uniforms.WaterFlowCounter);
             if (ShaderProgramBase.shadowmapQuality > 0)
             {
                 var fbShadowFar = _platform.FrameBuffers[11];
                 shader.BindTexture2D("shadowMapFar", fbShadowFar.DepthTextureId, 2);
                 shader.BindTexture2D("shadowMapNear", _platform.FrameBuffers[12].DepthTextureId, 3);
-                shader.Uniform("shadowMapWidthInv", 1f / fbShadowFar.Width);
-                shader.Uniform("shadowMapHeightInv", 1f / fbShadowFar.Height);
-                shader.Uniform("shadowRangeFar", uniforms.ShadowRangeFar);
-                shader.Uniform("shadowRangeNear", uniforms.ShadowRangeNear);
-                shader.UniformMatrix("toShadowMapSpaceMatrixFar", uniforms.ToShadowMapSpaceMatrixFar);
-                shader.UniformMatrix("toShadowMapSpaceMatrixNear", uniforms.ToShadowMapSpaceMatrixNear);
+                TrySetUniform(shader, "shadowMapWidthInv", 1f / fbShadowFar.Width);
+                TrySetUniform(shader, "shadowMapHeightInv", 1f / fbShadowFar.Height);
+                TrySetUniform(shader, "shadowRangeFar", uniforms.ShadowRangeFar);
+                TrySetUniform(shader, "shadowRangeNear", uniforms.ShadowRangeNear);
+                TrySetUniformMatrix(shader, "toShadowMapSpaceMatrixFar", uniforms.ToShadowMapSpaceMatrixFar);
+                TrySetUniformMatrix(shader, "toShadowMapSpaceMatrixNear", uniforms.ToShadowMapSpaceMatrixNear);
             }
 
-            shader.Uniform("fogDensityIn", ambient.BlendedFogDensity);
-            shader.Uniform("fogMinIn", ambient.BlendedFogMin);
-            shader.Uniform("rgbaFog", ambient.BlendedFogColor);
+            TrySetUniform(shader, "fogDensityIn", ambient.BlendedFogDensity);
+            TrySetUniform(shader, "fogMinIn", ambient.BlendedFogMin);
+            TrySetUniform(shader, "rgbaFog", ambient.BlendedFogColor);
             _platform.RenderFullscreenTriangle(_screenQuad);
             shader.Stop();
             _platform.CheckGlError("Error while calculating caustics");
@@ -457,9 +513,9 @@ public class ScreenSpaceReflections : IRenderer, IDisposable
         _game.GlLoadMatrix(_mod.CApi.Render.CameraMatrixOrigin);
         var shader = _shaders[1];
         shader.Use();
-        shader.UniformMatrix("projectionMatrix", _mod.CApi.Render.CurrentProjectionMatrix);
-        shader.UniformMatrix("modelViewMatrix", _mod.CApi.Render.CurrentModelviewMatrix);
-        shader.Uniform("playerUnderwater", playerUnderwater);
+        TrySetUniformMatrix(shader, "projectionMatrix", _mod.CApi.Render.CurrentProjectionMatrix);
+        TrySetUniformMatrix(shader, "modelViewMatrix", _mod.CApi.Render.CurrentModelviewMatrix);
+        TrySetUniform(shader, "playerUnderwater", playerUnderwater);
         var pools = _chunkRenderer.poolsByRenderPass[0];
         for (var i = 0; i < textureIds.Length; i++)
         {
@@ -475,10 +531,12 @@ public class ScreenSpaceReflections : IRenderer, IDisposable
         {
             shader = _shaders[3];
             shader.Use();
-            shader.UniformMatrix("projectionMatrix", _mod.CApi.Render.CurrentProjectionMatrix);
-            shader.UniformMatrix("modelViewMatrix", _mod.CApi.Render.CurrentModelviewMatrix);
-            shader.Uniform("rainStrength", _currentRain);
-            shader.Uniform("playerUnderwater", playerUnderwater);
+            TrySetUniformMatrix(shader, "projectionMatrix", _mod.CApi.Render.CurrentProjectionMatrix);
+            TrySetUniformMatrix(shader, "modelViewMatrix", _mod.CApi.Render.CurrentModelviewMatrix);
+            // Clamp rainStrength to prevent shader artifacts from extreme values
+            var clampedRainStrength = Math.Max(0f, Math.Min(_currentRain, 2.0f));
+            TrySetUniform(shader, "rainStrength", clampedRainStrength);
+            TrySetUniform(shader, "playerUnderwater", playerUnderwater);
             pools = _chunkRenderer.poolsByRenderPass[5];
             for (var j = 0; j < textureIds.Length; j++)
             {
@@ -492,13 +550,13 @@ public class ScreenSpaceReflections : IRenderer, IDisposable
         _platform.GlDisableCullFace();
         shader = _shaders[0];
         shader.Use();
-        shader.UniformMatrix("projectionMatrix", _mod.CApi.Render.CurrentProjectionMatrix);
-        shader.UniformMatrix("modelViewMatrix", _mod.CApi.Render.CurrentModelviewMatrix);
-        shader.Uniform("dropletIntensity", curRainFall);
-        shader.Uniform("waterFlowCounter", _platform.ShaderUniforms.WaterFlowCounter);
-        shader.Uniform("windSpeed", _platform.ShaderUniforms.WindSpeed);
-        shader.Uniform("playerUnderwater", playerUnderwater);
-        shader.Uniform("cameraWorldPosition", _mod.Uniforms.CameraWorldPosition);
+        TrySetUniformMatrix(shader, "projectionMatrix", _mod.CApi.Render.CurrentProjectionMatrix);
+        TrySetUniformMatrix(shader, "modelViewMatrix", _mod.CApi.Render.CurrentModelviewMatrix);
+        TrySetUniform(shader, "dropletIntensity", curRainFall);
+        TrySetUniform(shader, "waterFlowCounter", _platform.ShaderUniforms.WaterFlowCounter);
+        TrySetUniform(shader, "windSpeed", _platform.ShaderUniforms.WindSpeed);
+        TrySetUniform(shader, "playerUnderwater", playerUnderwater);
+        TrySetUniform(shader, "cameraWorldPosition", _mod.Uniforms.CameraWorldPosition);
         pools = _chunkRenderer.poolsByRenderPass[4];
         for (var k = 0; k < textureIds.Length; k++)
         {
@@ -510,9 +568,9 @@ public class ScreenSpaceReflections : IRenderer, IDisposable
         _platform.GlEnableCullFace();
         shader = _shaders[2];
         shader.Use();
-        shader.UniformMatrix("projectionMatrix", _mod.CApi.Render.CurrentProjectionMatrix);
-        shader.UniformMatrix("modelViewMatrix", _mod.CApi.Render.CurrentModelviewMatrix);
-        shader.Uniform("playerUnderwater", playerUnderwater);
+        TrySetUniformMatrix(shader, "projectionMatrix", _mod.CApi.Render.CurrentProjectionMatrix);
+        TrySetUniformMatrix(shader, "modelViewMatrix", _mod.CApi.Render.CurrentModelviewMatrix);
+        TrySetUniform(shader, "playerUnderwater", playerUnderwater);
         pools = _chunkRenderer.poolsByRenderPass[3];
         for (var l = 0; l < textureIds.Length; l++)
         {
@@ -533,6 +591,7 @@ public class ScreenSpaceReflections : IRenderer, IDisposable
         var ssrOutFB = _framebuffers[1];
         var ssrFB = _framebuffers[0];
         var causticsFB = _framebuffers[2];
+        
         if (!_enabled)
         {
             return;
@@ -543,22 +602,242 @@ public class ScreenSpaceReflections : IRenderer, IDisposable
             return;
         }
 
-        final.BindTexture2D("ssrScene", ssrOutFB.ColorTextureIds[0]);
-        if ((_refractionsEnabled || _causticsEnabled) && ssrFB != null)
+        var stopwatch = _mod.PerformanceManager?.StartTiming("SSR_FinalUniforms");
+        try
         {
-            final.UniformMatrix("projectionMatrix", _mod.CApi.Render.CurrentProjectionMatrix);
-            final.BindTexture2D("gpositionScene", ssrFB.ColorTextureIds[0]);
-            final.BindTexture2D("gdepthScene", _platform.FrameBuffers[0].DepthTextureId);
-        }
+            // Critical: Validate shader program is properly linked before setting uniforms
+            if (!IsShaderProgramValid(final))
+            {
+                _mod.Mod.Logger.Error("Final shader program is not properly linked, skipping SSR uniforms");
+                return;
+            }
 
-        if (_refractionsEnabled && ssrFB != null)
-        {
-            final.BindTexture2D("refractionScene", ssrFB.ColorTextureIds[3]);
-        }
+            // Safe texture binding with validation
+            if (IsFramebufferValid(ssrOutFB))
+            {
+                SafeBindTexture2D(final, "ssrScene", ssrOutFB.ColorTextureIds[0]);
+            }
+            
+            if ((_refractionsEnabled || _causticsEnabled) && ssrFB != null && IsFramebufferValid(ssrFB))
+            {
+                TrySetUniformMatrix(final, "projectionMatrix", _mod.CApi.Render.CurrentProjectionMatrix);
+                SafeBindTexture2D(final, "gpositionScene", ssrFB.ColorTextureIds[0]);
+                
+                // Safely bind depth texture
+                var depthBuffer = _platform.FrameBuffers[0];
+                if (depthBuffer != null && depthBuffer.DepthTextureId > 0)
+                {
+                    SafeBindTexture2D(final, "gdepthScene", depthBuffer.DepthTextureId);
+                }
+            }
 
-        if (_causticsEnabled && causticsFB != null)
-        {
-            final.BindTexture2D("causticsScene", causticsFB.ColorTextureIds[0]);
+            if (_refractionsEnabled && ssrFB != null && IsFramebufferValid(ssrFB) && ssrFB.ColorTextureIds.Length > 3)
+            {
+                SafeBindTexture2D(final, "refractionScene", ssrFB.ColorTextureIds[3]);
+            }
+
+            if (_causticsEnabled && causticsFB != null && IsFramebufferValid(causticsFB))
+            {
+                SafeBindTexture2D(final, "causticsScene", causticsFB.ColorTextureIds[0]);
+            }
         }
+        catch (Exception ex)
+        {
+            _mod.Mod.Logger.Error($"Critical error in final composition: {ex.Message}");
+            _mod.Mod.Logger.Error($"Stack trace: {ex.StackTrace}");
+            
+            // Disable SSR to prevent further crashes
+            _enabled = false;
+            _mod.Mod.Logger.Warning("SSR disabled due to critical final composition errors");
+        }
+        finally
+        {
+            if (stopwatch != null)
+                _mod.PerformanceManager?.EndTiming("SSR_FinalUniforms", stopwatch);
+        }
+    }
+
+    /// <summary>
+    /// Safe uniform setting with error handling to prevent KeyNotFoundException crashes
+    /// </summary>
+    private void TrySetUniform(IShaderProgram shader, string uniformName, float value)
+    {
+        try
+        {
+            shader.Uniform(uniformName, value);
+        }
+        catch (System.Collections.Generic.KeyNotFoundException)
+        {
+            // Uniform doesn't exist in shader, silently ignore
+            _mod.Mod.Logger.Debug($"Uniform '{uniformName}' not found in shader, skipping");
+        }
+        catch (Exception ex)
+        {
+            _mod.Mod.Logger.Warning($"Failed to set uniform '{uniformName}': {ex.Message}");
+        }
+    }
+
+    /// <summary>
+    /// Safe uniform setting for Vec3f values
+    /// </summary>
+    private void TrySetUniform(IShaderProgram shader, string uniformName, Vec3f value)
+    {
+        try
+        {
+            shader.Uniform(uniformName, value);
+        }
+        catch (System.Collections.Generic.KeyNotFoundException)
+        {
+            // Uniform doesn't exist in shader, silently ignore
+            _mod.Mod.Logger.Debug($"Uniform '{uniformName}' not found in shader, skipping");
+        }
+        catch (Exception ex)
+        {
+            _mod.Mod.Logger.Warning($"Failed to set uniform '{uniformName}': {ex.Message}");
+        }
+    }
+
+    /// <summary>
+    /// Safe uniform setting for Vec4f values
+    /// </summary>
+    private void TrySetUniform(IShaderProgram shader, string uniformName, Vec4f value)
+    {
+        try
+        {
+            shader.Uniform(uniformName, value);
+        }
+        catch (System.Collections.Generic.KeyNotFoundException)
+        {
+            // Uniform doesn't exist in shader, silently ignore
+            _mod.Mod.Logger.Debug($"Uniform '{uniformName}' not found in shader, skipping");
+        }
+        catch (Exception ex)
+        {
+            _mod.Mod.Logger.Warning($"Failed to set uniform '{uniformName}': {ex.Message}");
+        }
+    }
+
+    /// <summary>
+    /// Safe uniform matrix setting with error handling to prevent KeyNotFoundException crashes
+    /// </summary>
+    private void TrySetUniformMatrix(IShaderProgram shader, string uniformName, float[] matrix)
+    {
+        try
+        {
+            shader.UniformMatrix(uniformName, matrix);
+        }
+        catch (System.Collections.Generic.KeyNotFoundException)
+        {
+            // Uniform doesn't exist in shader, silently ignore
+            _mod.Mod.Logger.Debug($"Matrix uniform '{uniformName}' not found in shader, skipping");
+        }
+        catch (Exception ex)
+        {
+            _mod.Mod.Logger.Warning($"Failed to set matrix uniform '{uniformName}': {ex.Message}");
+        }
+    }
+
+    /// <summary>
+    /// Check if a shader program is valid and properly linked
+    /// </summary>
+    private bool IsShaderProgramValid(IShaderProgram program)
+    {
+        if (program == null)
+        {
+            return false;
+        }
+        
+        try
+        {
+            // Check if the shader program has a valid program ID and is properly linked
+            var shaderBase = program as ShaderProgramBase;
+            if (shaderBase != null && shaderBase.Disposed)
+            {
+                return false;
+            }
+            
+            return true;
+        }
+        catch (Exception ex)
+        {
+            _mod.Mod.Logger.Warning($"Error validating shader program: {ex.Message}");
+            return false;
+        }
+    }
+
+    /// <summary>
+    /// Check if a framebuffer is valid and ready to use
+    /// </summary>
+    private bool IsFramebufferValid(FrameBufferRef framebuffer)
+    {
+        if (framebuffer == null)
+        {
+            return false;
+        }
+        
+        try
+        {
+            // Check if framebuffer has valid FBO ID
+            if (framebuffer.FboId <= 0)
+            {
+                return false;
+            }
+            
+            // Check if color textures are valid
+            if (framebuffer.ColorTextureIds == null || framebuffer.ColorTextureIds.Length == 0)
+            {
+                return false;
+            }
+            
+            // Check if at least the first color texture is valid
+            if (framebuffer.ColorTextureIds[0] <= 0)
+            {
+                return false;
+            }
+            
+            return true;
+        }
+        catch (Exception ex)
+        {
+            _mod.Mod.Logger.Warning($"Error validating framebuffer: {ex.Message}");
+            return false;
+        }
+    }
+
+    /// <summary>
+    /// Safely bind a 2D texture to a shader uniform with error handling
+    /// </summary>
+    private void SafeBindTexture2D(IShaderProgram shader, string uniformName, int textureId)
+    {
+        if (shader == null || textureId <= 0)
+        {
+            return;
+        }
+        
+        try
+        {
+            // Find an available texture slot (we'll use a simple incremental approach)
+            var textureSlot = GetNextAvailableTextureSlot();
+            shader.BindTexture2D(uniformName, textureId, textureSlot);
+        }
+        catch (System.Collections.Generic.KeyNotFoundException)
+        {
+            // Uniform doesn't exist in shader, silently ignore
+            _mod.Mod.Logger.Debug($"Texture uniform '{uniformName}' not found in shader, skipping");
+        }
+        catch (Exception ex)
+        {
+            _mod.Mod.Logger.Warning($"Failed to bind texture to uniform '{uniformName}': {ex.Message}");
+        }
+    }
+    
+    private int _currentTextureSlot = 0;
+    
+    /// <summary>
+    /// Get the next available texture slot (simple incrementing approach)
+    /// </summary>
+    private int GetNextAvailableTextureSlot()
+    {
+        return _currentTextureSlot++;
     }
 }

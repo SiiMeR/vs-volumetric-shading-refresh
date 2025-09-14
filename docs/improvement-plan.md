@@ -1,14 +1,69 @@
-# Volumetric Shading Refreshed - Improvement Plan
+# Volumetric Shading Refreshed - Improvement Plan (Updated)
 
 ## Executive Summary
 
-This document outlines a comprehensive roadmap to achieve a stable, fully functional implementation of the Volumetric Shading Refreshed mod that works reliably across all major GPU vendors (NVIDIA, AMD, Intel) and provides consistent user experience.
+This document outlines a comprehensive roadmap to modernize the VolumetricShadingRefreshed mod by adopting a **hybrid architecture** that uses official Vintage Story APIs where possible while maintaining necessary shader integration for advanced effects.
+
+**Key Insight**: Analysis reveals that ~60% of the current complex YAML-based shader patching system can be replaced with official APIs, while ~40% legitimately requires core shader modification.
+
+## Phase 0: Architecture Modernization (Priority: Critical)
+
+### 0.1 Replace Overcomplicated YAML System with Official APIs
+
+**Timeline: 2-3 weeks**
+
+**Goal**: Replace independent effects (overexposure, blur, basic volumetric) with dedicated renderers using official Vintage Story APIs.
+
+#### Remove Complex String Manipulation
+- [ ] **Delete YAML-based patching for independent effects**:
+  - `overexposure.yaml` → `OverexposureRenderer` using `IRenderer` interface
+  - `blur.yaml` → `BlurEffect` with dedicated Gaussian blur shaders
+  - `deferredlighting.yaml` → Enhanced existing `DeferredLightingRenderer`
+  
+- [ ] **Replace ShaderInjector with direct uniform providers**:
+  ```csharp
+  // Instead of complex string injection:
+  .WithUniformProvider(() => {
+      shader.Uniform("ssrEnabled", ModSettings.ScreenSpaceReflectionsEnabled ? 1 : 0);
+      shader.Uniform("waterTransparency", ModSettings.SSRWaterTransparency * 0.01f);
+  })
+  ```
+
+#### Create Dedicated Shader Programs
+- [ ] **Implement official shader registration**:
+  - Use `CApi.Shader.NewShaderProgram()` for independent effects
+  - Create actual `.fsh` and `.vsh` files instead of YAML patches
+  - Utilize official uniform management system
+
+**Expected Results**: 
+- **-2,000 lines** of string manipulation code removed
+- **-6 YAML** patch files eliminated  
+- **+8 proper shader files** with IDE support
+- **90% reduction** in runtime string processing
+
+### 0.2 Simplify Core Integration Patches
+
+**Timeline: 1-2 weeks**
+
+**Goal**: Reduce essential shader patches from 83 individual patches to ~12 core integrations.
+
+- [ ] **Streamline Screen Space Reflections**:
+  - Keep only 3 essential patches (final compositing, water transparency, conflict resolution)
+  - Move 9 other patches to dedicated SSR shaders
+  
+- [ ] **Minimize Shadow Integration**:
+  - Keep only essential shadow bias adjustments
+  - Move soft shadow rendering to dedicated shader programs
+
+- [ ] **Reduce Harmony patching scope**:
+  - Remove `ShaderRegistryPatches` transpiler modifications
+  - Keep minimal patches for core game integration only
 
 ## Phase 1: Foundation & Compatibility (Priority: High)
 
 ### 1.1 AMD Graphics Card Compatibility Resolution
 
-**Timeline: 2-3 weeks**
+**Timeline: 1-2 weeks** *(Reduced due to architecture simplification)*
 
 #### Shader Code Review & Fixes
 - [ ] **Audit all fragment shaders** for AMD-specific issues:
@@ -262,12 +317,15 @@ public class ShaderCompiler
 ## Resource Requirements
 
 ### Development Time
-- **Phase 1**: 4-6 weeks (Critical path)
-- **Phase 2**: 3 weeks 
-- **Phase 3**: 4-5 weeks
-- **Phase 4**: 3 weeks
-- **Phase 5**: 5-6 weeks
-- **Total**: ~20-23 weeks
+- **Phase 0**: 3-5 weeks (Architecture modernization - Critical path)
+- **Phase 1**: 2-3 weeks (Compatibility fixes - Simplified by Phase 0)
+- **Phase 2**: 2-3 weeks (Performance & Stability)
+- **Phase 3**: 3-4 weeks (Feature completion)  
+- **Phase 4**: 2-3 weeks (Cross-platform testing)
+- **Phase 5**: 4-5 weeks (Advanced features)
+- **Total**: ~16-23 weeks
+
+**Key Change**: Architecture modernization (Phase 0) significantly reduces complexity of subsequent phases.
 
 ### Hardware Requirements for Testing
 - Various AMD GPUs (minimum 3 different generations)
@@ -301,9 +359,16 @@ The proposed improvements are technically achievable within the Vintage Story mo
 With dedicated development effort and community testing support, a fully functional cross-platform implementation is definitely possible.
 
 **Recommended Next Steps**:
-1. Begin Phase 1 with AMD compatibility fixes
-2. Set up testing infrastructure
-3. Establish community beta testing program
-4. Create development milestones with community feedback loops
+1. **Begin Phase 0 with architecture modernization** - Replace YAML system with official APIs
+2. **Validate approach with simple effect** (e.g., overexposure) to prove concept
+3. **Set up testing infrastructure** with before/after visual comparisons
+4. **Establish community beta testing program** for Phase 0 completion
+5. **Create development milestones** with community feedback loops
 
-The improved mod will provide a significantly better experience for all Vintage Story players while maintaining the advanced visual effects that make this mod special.
+**Critical Success Factor**: Phase 0 (Architecture Modernization) must be completed first, as it will dramatically simplify all subsequent phases and provide a solid foundation for AMD compatibility improvements.
+
+The modernized mod will provide:
+- **Identical visual effects** with significantly simpler, more maintainable code
+- **Better hardware compatibility** through dedicated shader variants
+- **Improved performance** via reduced CPU overhead
+- **Standard development workflow** using proper shader files instead of YAML patches

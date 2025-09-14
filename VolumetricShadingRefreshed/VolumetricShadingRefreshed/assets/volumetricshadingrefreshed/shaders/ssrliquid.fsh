@@ -1,22 +1,27 @@
 #version 330 core
 
-uniform sampler2D terrainTex;
-uniform vec3 playerpos;
-uniform mat4 modelViewMatrix;
-uniform float dropletIntensity = 0;
-uniform float playerUnderwater;
-uniform vec4 cameraWorldPosition;
-const vec4 rgbaFog = vec4(0);
+// AMD Compatibility: Add explicit precision qualifiers
+precision highp float;
+precision highp int;
+precision highp sampler2D;
 
-in vec4 worldPos;
-in vec4 fragPosition;
-in vec3 fragWorldPos;
-in vec4 gnormal;
-in vec3 worldNormal;
-in vec2 flowVectorf;
-in vec2 uv;
+uniform sampler2D terrainTex;
+uniform highp vec3 playerpos;
+uniform highp mat4 modelViewMatrix;
+uniform mediump float dropletIntensity = 0.0;
+uniform mediump float playerUnderwater;
+uniform highp vec4 cameraWorldPosition;
+const mediump vec4 rgbaFog = vec4(0.0);
+
+in highp vec4 worldPos;
+in highp vec4 fragPosition;
+in highp vec3 fragWorldPos;
+in highp vec4 gnormal;
+in highp vec3 worldNormal;
+in mediump vec2 flowVectorf;
+in mediump vec2 uv;
 flat in int waterFlags;
-flat in float alpha;
+flat in mediump float alpha;
 flat in int skyExposed;
 
 layout(location = 0) out vec4 outGPosition;
@@ -32,112 +37,107 @@ layout(location = 3) out vec4 outRefraction;
 #include wavenoise.ash
 #generated dropletnoise
 
-void generateNoiseBump(inout vec3 normalMap, vec3 position, float div) {
-    const vec3 offset = vec3(0.05, 0.0, 0.0);
-    vec3 posCenter = position.xyz;
-    vec3 posNorth = posCenter - offset.zyx;
-    vec3 posEast = posCenter + offset.xzy;
+void generateNoiseBump(inout highp vec3 normalMap, highp vec3 position, mediump float div) {
+    const highp vec3 offset = vec3(0.05, 0.0, 0.0);
+    highp vec3 posCenter = position.xyz;
+    highp vec3 posNorth = posCenter - offset.zyx;
+    highp vec3 posEast = posCenter + offset.xzy;
 
-    float val0 = generateWaveNoise(posCenter, div);
-    float val1 = generateWaveNoise(posNorth, div);
-    float val2 = generateWaveNoise(posEast, div);
+    mediump float val0 = generateWaveNoise(posCenter, div);
+    mediump float val1 = generateWaveNoise(posNorth, div);
+    mediump float val2 = generateWaveNoise(posEast, div);
 
-    float zDelta = (val0 - val1);
-    float xDelta = (val2 - val0);
+    mediump float zDelta = (val0 - val1);
+    mediump float xDelta = (val2 - val0);
 
-    normalMap += vec3(xDelta * 0.5, zDelta * 0.5, 0);
+    normalMap += vec3(xDelta * 0.5, zDelta * 0.5, 0.0);
 }
 
-void generateNoiseParallax(inout vec3 normalMap, vec3 viewVector, float div, out vec3 parallaxPos) {
-    vec3 targetPos = fragWorldPos.xyz;
+void generateNoiseParallax(inout highp vec3 normalMap, highp vec3 viewVector, mediump float div, out highp vec3 parallaxPos) {
+    highp vec3 targetPos = fragWorldPos.xyz;
 
-    float currentNoise = generateWaveNoise(fragWorldPos.xyz, div);
+    mediump float currentNoise = generateWaveNoise(fragWorldPos.xyz, div);
     targetPos.xz += (currentNoise * viewVector.xy) * 0.4;
 
     generateNoiseBump(normalMap, targetPos, div);
     parallaxPos = targetPos;
 }
 
-float generateSplash(vec3 pos)
+mediump float generateSplash(highp vec3 pos)
 {
-    vec3 localPos = fract(pos.xyz / 512.0) * 512.0;
-    vec2 uv = 5.0 * pos.xz;
+    highp vec3 localPos = fract(pos.xyz / 512.0) * 512.0;
+    mediump vec2 uvSplash = 5.0 * pos.xz;
 
-    return dropletnoise(uv, waterWaveCounter);
+    return dropletnoise(uvSplash, waterWaveCounter);
 }
 
-void generateSplashBump(inout vec3 normalMap, vec3 pos)
+void generateSplashBump(inout highp vec3 normalMap, highp vec3 pos)
 {
-    const vec3 deltaPos = vec3(0.01, 0.0, 0.0);
-    vec3 startPos = pos - deltaPos.xyx * 0.5;
+    const highp vec3 deltaPos = vec3(0.01, 0.0, 0.0);
+    highp vec3 startPos = pos - deltaPos.xyx * 0.5;
 
-    float val0 = generateSplash(startPos);
-    float val1 = generateSplash(startPos + deltaPos.xyz);
-    //float val2 = generateSplash(pos - deltaPos.xyz);
-    float val2 = generateSplash(startPos + deltaPos.zyx);
-    //float val4 = generateSplash(pos - deltaPos.zyx);
+    mediump float val0 = generateSplash(startPos);
+    mediump float val1 = generateSplash(startPos + deltaPos.xyz);
+    mediump float val2 = generateSplash(startPos + deltaPos.zyx);
 
-    float xDelta = (val1 - val0);
-    float zDelta = (val2 - val0);
+    mediump float xDelta = (val1 - val0);
+    mediump float zDelta = (val2 - val0);
 
-    normalMap += vec3(xDelta, zDelta, 0) * 0.75;
+    normalMap += vec3(xDelta, zDelta, 0.0) * 0.75;
 }
 
 // https://gamedev.stackexchange.com/questions/86530/is-it-possible-to-calculate-the-tbn-matrix-in-the-fragment-shader
-mat3 cotangentFrame(vec3 N, vec3 p, vec2 uv) {
-    vec3 dp1 = dFdx(p);
-    vec3 dp2 = dFdy(p);
-    vec2 duv1 = dFdx(uv);
-    vec2 duv2 = dFdy(uv);
+highp mat3 cotangentFrame(highp vec3 N, highp vec3 p, mediump vec2 uvCoord) {
+    highp vec3 dp1 = dFdx(p);
+    highp vec3 dp2 = dFdy(p);
+    mediump vec2 duv1 = dFdx(uvCoord);
+    mediump vec2 duv2 = dFdy(uvCoord);
 
-    vec3 dp2perp = cross(dp2, N);
-    vec3 dp1perp = cross(N, dp1);
-    vec3 T = dp2perp * duv1.x + dp1perp * duv2.x;
-    vec3 B = dp2perp * duv1.y + dp1perp * duv2.y;
+    highp vec3 dp2perp = cross(dp2, N);
+    highp vec3 dp1perp = cross(N, dp1);
+    highp vec3 T = dp2perp * duv1.x + dp1perp * duv2.x;
+    highp vec3 B = dp2perp * duv1.y + dp1perp * duv2.y;
 
-    float invmax = inversesqrt(max(dot(T, T), dot(B, B)));
+    highp float invmax = inversesqrt(max(dot(T, T), dot(B, B)));
     return mat3(T * invmax, B * invmax, N);
 }
 
 void main()
 {
-    float isWater = ((waterFlags & (1<<25)) > 0) ? 0.0f : 1.0f;
-    float myAlpha = alpha * isWater;
+    // AMD Compatibility: Fix implicit type conversions
+    mediump float isWater = ((waterFlags & (1<<25)) > 0) ? 0.0 : 1.0;
+    mediump float myAlpha = alpha * isWater;
     if (myAlpha < 0.5) discard;
 
     // apply waves
-    float caustics = length(flowVectorf) > 0.001 ? 0 : 1;
-    float div = ((waterFlags & (1<<27)) > 0) ? 90 : 10;
-    //float noise = generateNoise(worldPos.xyz + playerpos.xyz, div, wind);
+    mediump float caustics = length(flowVectorf) > 0.001 ? 0.0 : 1.0;
+    mediump float div = float(((waterFlags & (1<<27)) > 0) ? 90 : 10);
 
-    mat3 tbn = cotangentFrame(worldNormal, worldPos.xyz, uv);
-    mat3 invTbn = transpose(tbn);
+    highp mat3 tbn = cotangentFrame(worldNormal, worldPos.xyz, uv);
+    highp mat3 invTbn = transpose(tbn);
 
-    //vec3 normalMap = vec3(noise, noise, 0.0f);
-    vec3 normalMap = vec3(0);
-    //generateNoiseBump(normalMap, div);
-    vec3 parallaxPos;
-    vec3 viewTangent = normalize(invTbn * (worldPos.xyz - cameraWorldPosition.xyz));
+    highp vec3 normalMap = vec3(0.0);
+    highp vec3 parallaxPos;
+    highp vec3 viewTangent = normalize(invTbn * (worldPos.xyz - cameraWorldPosition.xyz));
     generateNoiseParallax(normalMap, viewTangent, div, parallaxPos);
 
     if (dropletIntensity > 0.001) {
-        //generateSplash(fragWorldPos.xyz);
         generateSplashBump(normalMap, parallaxPos);
     }
 
-    vec3 worldNormalMap = tbn * normalMap;
-    vec3 camNormalMap = (modelViewMatrix * vec4(worldNormalMap, 0.0)).xyz;
-    vec3 myGNormal = gnormal.xyz;
+    highp vec3 worldNormalMap = tbn * normalMap;
+    highp vec3 camNormalMap = (modelViewMatrix * vec4(worldNormalMap, 0.0)).xyz;
+    highp vec3 myGNormal = gnormal.xyz;
 
-    if (dot(gnormal.xyz, fragPosition.xyz) > 0) {
+    if (dot(gnormal.xyz, fragPosition.xyz) > 0.0) {
         // flip the normal if viewed from behind
         myGNormal = -gnormal.xyz;
     }
 
-    outGPosition = vec4(fragPosition.xyz, 0);
-    outGNormal = vec4(normalize(camNormalMap*2 + myGNormal), 1.0 - playerUnderwater * caustics);
-    outTint = vec4(getColorMapped(terrainTex, vec4(1)).rgb, 0);
+    outGPosition = vec4(fragPosition.xyz, 0.0);
+    outGNormal = vec4(normalize(camNormalMap * 2.0 + myGNormal), 1.0 - playerUnderwater * caustics);
+    outTint = vec4(getColorMapped(terrainTex, vec4(1.0)).rgb, 0.0);
     #if VSMOD_REFRACT > 0
-    outRefraction = vec4((-camNormalMap.xy*1.2) / fragPosition.z, 0, 0);
+    outRefraction = vec4((-camNormalMap.xy * 1.2) / fragPosition.z, 0.0, 0.0);
     #endif
 }

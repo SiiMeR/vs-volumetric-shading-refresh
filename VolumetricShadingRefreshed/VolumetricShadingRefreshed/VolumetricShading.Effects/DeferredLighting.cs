@@ -1,6 +1,8 @@
+using System;
 using System.Collections.Generic;
 using OpenTK.Graphics.OpenGL;
 using Vintagestory.API.Client;
+using Vintagestory.API.MathTools;
 using Vintagestory.API.Util;
 using Vintagestory.Client.NoObf;
 using volumetricshadingupdated.VolumetricShading.Patch;
@@ -69,7 +71,31 @@ public class DeferredLighting
             shader.Dispose();
         }
 
-        _shader = (ShaderProgram)_mod.RegisterShader("deferredlighting", ref success);
+        try
+        {
+            _shader = (ShaderProgram)_mod.RegisterShader("deferredlighting", ref success);
+            
+            // AMD Compatibility: Validate shader compilation
+            if (!success || _shader == null)
+            {
+                _mod.Mod.Logger.Error("Deferred lighting shader compilation failed");
+                // Disable deferred lighting on compilation failure
+                _enabled = false;
+                ModSettings.DeferredLightingEnabled = false;
+            }
+            else
+            {
+                _mod.Mod.Logger.Event("Deferred lighting shader compiled successfully");
+            }
+        }
+        catch (Exception ex)
+        {
+            _mod.Mod.Logger.Error($"Exception loading deferred lighting shader: {ex.Message}");
+            success = false;
+            _enabled = false;
+            ModSettings.DeferredLightingEnabled = false;
+        }
+        
         return success;
     }
 
@@ -130,8 +156,17 @@ public class DeferredLighting
             return;
         }
 
-        _platform.LoadFrameBuffer(_frameBuffer);
-        GL.Clear(ClearBufferMask.DepthBufferBit | ClearBufferMask.ColorBufferBit);
+        var stopwatch = _mod.PerformanceManager?.StartTiming("DeferredLighting_BeginRender");
+        try
+        {
+            _platform.LoadFrameBuffer(_frameBuffer);
+            GL.Clear(ClearBufferMask.DepthBufferBit | ClearBufferMask.ColorBufferBit);
+        }
+        finally
+        {
+            if (stopwatch != null)
+                _mod.PerformanceManager?.EndTiming("DeferredLighting_BeginRender", stopwatch);
+        }
     }
 
     public void OnEndRender()
@@ -141,57 +176,147 @@ public class DeferredLighting
             return;
         }
 
-        _platform.LoadFrameBuffer(EnumFrameBuffer.Primary);
-        GL.ClearBuffer(ClearBuffer.Color, 0, new[] { 0f, 0f, 0f, 1f });
-        GL.ClearBuffer(ClearBuffer.Color, 1, new[] { 0f, 0f, 0f, 1f });
-        var render = _mod.CApi.Render;
-        var uniforms = render.ShaderUniforms;
-        var myUniforms = _mod.Uniforms;
-        var fb = _frameBuffer;
-        var fbPrimary = _platform.FrameBuffers[0];
-        _platform.GlDisableDepthTest();
-        _platform.GlToggleBlend(false);
-        GL.DrawBuffers(2, new[]
-        {
-            DrawBuffersEnum.ColorAttachment0,
-            DrawBuffersEnum.ColorAttachment1
-        });
+        // AMD Compatibility: Check if shader is valid before using
         var s = _shader;
-        s.Use();
-        s.BindTexture2D("gDepth", fbPrimary.DepthTextureId);
-        s.BindTexture2D("gNormal", fbPrimary.ColorTextureIds[2]);
-        s.BindTexture2D("inColor", fb.ColorTextureIds[0]);
-        s.BindTexture2D("inGlow", fb.ColorTextureIds[1]);
-        s.UniformMatrix("invProjectionMatrix", myUniforms.InvProjectionMatrix);
-        s.UniformMatrix("invModelViewMatrix", myUniforms.InvModelViewMatrix);
-        s.Uniform("dayLight", myUniforms.DayLight);
-        s.Uniform("sunPosition", uniforms.SunPosition3D);
-        if (ShaderProgramBase.shadowmapQuality > 0)
+        if (s == null)
         {
-            s.Uniform("shadowRangeFar", uniforms.ShadowRangeFar);
-            s.Uniform("shadowRangeNear", uniforms.ShadowRangeNear);
-            s.UniformMatrix("toShadowMapSpaceMatrixFar", uniforms.ToShadowMapSpaceMatrixFar);
-            s.UniformMatrix("toShadowMapSpaceMatrixNear", uniforms.ToShadowMapSpaceMatrixNear);
+            _mod.Mod.Logger.Warning("Deferred lighting shader is null, skipping render");
+            return;
         }
 
-        s.Uniform("fogDensityIn", render.FogDensity);
-        s.Uniform("fogMinIn", render.FogMin);
-        s.Uniform("rgbaFog", render.FogColor);
-        s.Uniform("flatFogDensity", uniforms.FlagFogDensity);
-        s.Uniform("flatFogStart", uniforms.FlatFogStartYPos - uniforms.PlayerPos.Y);
-        s.Uniform("viewDistance", ClientSettings.ViewDistance);
-        s.Uniform("viewDistanceLod0", ClientSettings.ViewDistance * ClientSettings.LodBias);
-        _platform.RenderFullscreenTriangle(_screenQuad);
-        s.Stop();
-        _platform.CheckGlError("Error while calculating deferred lighting");
-        GL.DrawBuffers(4, new[]
+        // Check if shader is usable (success flag should have been set during compilation)
+        if (_shader == null)
         {
-            DrawBuffersEnum.ColorAttachment0,
-            DrawBuffersEnum.ColorAttachment1,
-            DrawBuffersEnum.ColorAttachment2,
-            DrawBuffersEnum.ColorAttachment3
-        });
-        _platform.GlEnableDepthTest();
+            _mod.Mod.Logger.Warning("Deferred lighting shader is not available, skipping render");
+            return;
+        }
+
+        try
+        {
+            _platform.LoadFrameBuffer(EnumFrameBuffer.Primary);
+            GL.ClearBuffer(ClearBuffer.Color, 0, new[] { 0f, 0f, 0f, 1f });
+            GL.ClearBuffer(ClearBuffer.Color, 1, new[] { 0f, 0f, 0f, 1f });
+            var render = _mod.CApi.Render;
+            var uniforms = render.ShaderUniforms;
+            var myUniforms = _mod.Uniforms;
+            var fb = _frameBuffer;
+            var fbPrimary = _platform.FrameBuffers[0];
+            _platform.GlDisableDepthTest();
+            _platform.GlToggleBlend(false);
+            GL.DrawBuffers(2, new[]
+            {
+                DrawBuffersEnum.ColorAttachment0,
+                DrawBuffersEnum.ColorAttachment1
+            });
+
+            s.Use();
+            s.BindTexture2D("gDepth", fbPrimary.DepthTextureId);
+            s.BindTexture2D("gNormal", fbPrimary.ColorTextureIds[2]);
+            s.BindTexture2D("inColor", fb.ColorTextureIds[0]);
+            s.BindTexture2D("inGlow", fb.ColorTextureIds[1]);
+
+            // AMD Compatibility: Safe uniform setting with validation
+            TrySetUniformMatrix(s, "invProjectionMatrix", myUniforms.InvProjectionMatrix);
+            TrySetUniformMatrix(s, "invModelViewMatrix", myUniforms.InvModelViewMatrix);
+            TrySetUniform(s, "dayLight", myUniforms.DayLight);
+            TrySetUniform(s, "sunPosition", uniforms.SunPosition3D);
+
+            if (ShaderProgramBase.shadowmapQuality > 0)
+            {
+                TrySetUniform(s, "shadowRangeFar", uniforms.ShadowRangeFar);
+                TrySetUniform(s, "shadowRangeNear", uniforms.ShadowRangeNear);
+                TrySetUniformMatrix(s, "toShadowMapSpaceMatrixFar", uniforms.ToShadowMapSpaceMatrixFar);
+                TrySetUniformMatrix(s, "toShadowMapSpaceMatrixNear", uniforms.ToShadowMapSpaceMatrixNear);
+            }
+
+            TrySetUniform(s, "fogDensityIn", render.FogDensity);
+            TrySetUniform(s, "fogMinIn", render.FogMin);
+            TrySetUniform(s, "rgbaFog", render.FogColor);
+            TrySetUniform(s, "flatFogDensity", uniforms.FlagFogDensity);
+            TrySetUniform(s, "flatFogStart", uniforms.FlatFogStartYPos - uniforms.PlayerPos.Y);
+            TrySetUniform(s, "viewDistance", (float)ClientSettings.ViewDistance);
+            TrySetUniform(s, "viewDistanceLod0", (float)(ClientSettings.ViewDistance * ClientSettings.LodBias));
+
+            _platform.RenderFullscreenTriangle(_screenQuad);
+            s.Stop();
+            _platform.CheckGlError("Error while calculating deferred lighting");
+            GL.DrawBuffers(4, new[]
+            {
+                DrawBuffersEnum.ColorAttachment0,
+                DrawBuffersEnum.ColorAttachment1,
+                DrawBuffersEnum.ColorAttachment2,
+                DrawBuffersEnum.ColorAttachment3
+            });
+            _platform.GlEnableDepthTest();
+        }
+        catch (Exception ex)
+        {
+            _mod.Mod.Logger.Error($"Error in deferred lighting render: {ex.Message}");
+            // Disable deferred lighting on critical error to prevent crashes
+            _enabled = false;
+            ModSettings.DeferredLightingEnabled = false;
+            _mod.Mod.Logger.Warning("Disabled deferred lighting due to render error");
+        }
+    }
+
+    /// <summary>
+    /// AMD Compatibility: Safe uniform matrix setting with error handling
+    /// </summary>
+    private void TrySetUniformMatrix(ShaderProgram shader, string uniformName, float[] matrix)
+    {
+        try
+        {
+            shader.UniformMatrix(uniformName, matrix);
+        }
+        catch (Exception ex)
+        {
+            _mod.Mod.Logger.Warning($"Failed to set uniform matrix '{uniformName}': {ex.Message}");
+        }
+    }
+
+    /// <summary>
+    /// AMD Compatibility: Safe uniform setting with error handling
+    /// </summary>
+    private void TrySetUniform(ShaderProgram shader, string uniformName, float value)
+    {
+        try
+        {
+            shader.Uniform(uniformName, value);
+        }
+        catch (Exception ex)
+        {
+            _mod.Mod.Logger.Warning($"Failed to set uniform '{uniformName}': {ex.Message}");
+        }
+    }
+
+    /// <summary>
+    /// AMD Compatibility: Safe uniform setting for Vec3f values
+    /// </summary>
+    private void TrySetUniform(ShaderProgram shader, string uniformName, Vec3f value)
+    {
+        try
+        {
+            shader.Uniform(uniformName, value);
+        }
+        catch (Exception ex)
+        {
+            _mod.Mod.Logger.Warning($"Failed to set uniform '{uniformName}': {ex.Message}");
+        }
+    }
+
+    /// <summary>
+    /// AMD Compatibility: Safe uniform setting for Vec4f values
+    /// </summary>
+    private void TrySetUniform(ShaderProgram shader, string uniformName, Vec4f value)
+    {
+        try
+        {
+            shader.Uniform(uniformName, value);
+        }
+        catch (Exception ex)
+        {
+            _mod.Mod.Logger.Warning($"Failed to set uniform '{uniformName}': {ex.Message}");
+        }
     }
 
     public void Dispose()
