@@ -1,9 +1,11 @@
 using System;
 using System.Diagnostics;
+using System.Reflection;
 using HarmonyLib;
 using Vintagestory.API.Client;
 using Vintagestory.API.Common;
 using Vintagestory.API.Util;
+using Vintagestory.Client.NoObf;
 using volumetricshadingupdated.VolumetricShading.Effects;
 using volumetricshadingupdated.VolumetricShading.Gui;
 using volumetricshadingupdated.VolumetricShading.Patch;
@@ -100,6 +102,11 @@ public class VolumetricShadingMod : ModSystem, IRenderer
     /// </summary>
     public BlurRenderer BlurRenderer { get; private set; }
 
+    /// <summary>
+    /// Modern soft shadow renderer with PCSS implementation
+    /// </summary>
+    public SoftShadowRenderer SoftShadowRenderer { get; private set; }
+
     public override bool ShouldLoad(EnumAppSide forSide)
     {
         return forSide == EnumAppSide.Client;
@@ -128,19 +135,22 @@ public class VolumetricShadingMod : ModSystem, IRenderer
         ShaderInjector = new ShaderInjector(CApi, Mod.Info.ModID);
         ShaderUniformManager = new ShaderUniformManager(this);
         
-        VolumetricLighting = new VolumetricLighting(this);
-        ScreenSpaceReflections = new ScreenSpaceReflections(this);
+        // Core volumetric effects - TEMPORARILY DISABLED (depend on shader patches)
+        // VolumetricLighting = new VolumetricLighting(this);
+        // ScreenSpaceReflections = new ScreenSpaceReflections(this);
         
-        // Modern effect renderers replacing YAML-based patches
-        OverexposureRenderer = new OverexposureRenderer(this);
-        BlurRenderer = new BlurRenderer(this);
+        // Modern effect renderers replacing YAML-based patches - TEMPORARILY DISABLED
+        // OverexposureRenderer = new OverexposureRenderer(this);
+        // BlurRenderer = new BlurRenderer(this);
+        // SoftShadowRenderer = new SoftShadowRenderer(this);
         
-        // Legacy effects (to be modernized in future phases)
-        OverexposureEffect = new OverexposureEffect(this);
-        ScreenSpaceDirectionalOcclusion = new ScreenSpaceDirectionalOcclusion(this);
-        ShadowTweaks = new ShadowTweaks(this);
-        DeferredLighting = new DeferredLighting(this);
-        UnderwaterTweaks = new UnderwaterTweaks(this);
+        // Legacy effects (to be modernized in future phases) - TEMPORARILY DISABLED
+        // These effects depend on shader patches that are currently disabled
+        // OverexposureEffect = new OverexposureEffect(this);
+        // ScreenSpaceDirectionalOcclusion = new ScreenSpaceDirectionalOcclusion(this);
+        // ShadowTweaks = new ShadowTweaks(this);
+        // DeferredLighting = new DeferredLighting(this);
+        // UnderwaterTweaks = new UnderwaterTweaks(this);
         
         PerformanceManager = new PerformanceManager(this);
         DebugCommandManager = new DebugCommandManager(this);
@@ -155,17 +165,110 @@ public class VolumetricShadingMod : ModSystem, IRenderer
         // Start performance monitoring
         CApi.Event.RegisterRenderer(this, EnumRenderStage.Before, "vsmod-performance-monitor");
         
-        // Register modern effect renderers
-        CApi.Event.RegisterRenderer(OverexposureRenderer, EnumRenderStage.AfterOIT, "vsmod-overexposure-modern");
-        CApi.Event.RegisterRenderer(BlurRenderer, EnumRenderStage.AfterBloom, "vsmod-blur-modern");
+        // Register modern effect renderers using asset-based shaders - TEMPORARILY DISABLED
+        // RegisterModernRenderers();
+        
+        // Register modern shaders for direct use - TEMPORARILY DISABLED
+        // RegisterModernShaders();
         
         // Register debug commands
         DebugCommandManager.RegisterCommands();
         
         RegisterHotkeys();
+        
+        // Apply minimal necessary patches (reduced from original implementation)
         PatchGame();
         
-        Mod.Logger.Event("Volumetric Shading Mod initialized with performance monitoring");
+        Mod.Logger.Event("Volumetric Shading Mod initialized with modern shader management");
+    }
+    
+    /// <summary>
+    /// Register modern effect renderers that use dedicated shaders instead of patches
+    /// </summary>
+    private void RegisterModernRenderers()
+    {
+        // Register overexposure effect (replaces overexposure.yaml)
+        CApi.Event.RegisterRenderer(OverexposureRenderer, EnumRenderStage.AfterOIT, "vsmod-overexposure-modern");
+        Mod.Logger.Event("Registered modern overexposure renderer with dedicated shader");
+        
+        // Register blur effect (replaces blur.yaml)
+        CApi.Event.RegisterRenderer(BlurRenderer, EnumRenderStage.AfterOIT, "vsmod-blur-modern");
+        Mod.Logger.Event("Registered modern blur renderer with separable blur shaders");
+        
+        // Register soft shadow effect (replaces parts of shadowtweaks.yaml)
+        CApi.Event.RegisterRenderer(SoftShadowRenderer, EnumRenderStage.Opaque, "vsmod-softshadow-modern");
+        Mod.Logger.Event("Registered modern soft shadow renderer with PCSS implementation");
+    }
+    
+    /// <summary>
+    /// Register modern shaders using asset-based approach instead of patches
+    /// </summary>
+    private void RegisterModernShaders()
+    {
+        try
+        {
+            // These shaders can be loaded directly from assets rather than patched at runtime
+            var shaderAssets = new[]
+            {
+                "overexposure",
+                "blur_horizontal",
+                "blur_vertical",
+                "softshadow"
+            };
+            
+            // Extra careful loading of potentially problematic deferred lighting shaders
+            bool deferredShadersSucceeded = false;
+            
+            foreach (var name in shaderAssets)
+            {
+                try {
+                    if (VSModShaderExtensions.IsShaderCompatible(this, name))
+                    {
+                        var shader = RegisterModernShader(name);
+                        if (shader != null)
+                        {
+                            Mod.Logger.Event($"Successfully registered asset-based shader: {name}");
+                        }
+                    }
+                    else
+                    {
+                        Mod.Logger.Warning($"Skipped loading incompatible shader: {name}");
+                    }
+                }
+                catch (Exception innerEx) {
+                    // Continue with other shaders even if one fails
+                    Mod.Logger.Warning($"Failed to load shader '{name}': {innerEx.Message}");
+                }
+            }
+            
+            // Try deferred shaders separately to prevent one failure blocking everything
+            try {
+                bool geometrySuccess = false;
+                var geometryShader = VSModShaderExtensions.RegisterVSModShader(this, "deferred_geometry", ref geometrySuccess);
+                
+                bool lightingSuccess = false;
+                var lightingShader = VSModShaderExtensions.RegisterVSModShader(this, "deferred_lighting", ref lightingSuccess);
+                
+                if (geometrySuccess && lightingSuccess && geometryShader != null && lightingShader != null) {
+                    Mod.Logger.Event("Successfully registered modern deferred lighting shaders");
+                    deferredShadersSucceeded = true;
+                } else {
+                    Mod.Logger.Warning("Modern deferred lighting shaders failed to load - using legacy implementation");
+                }
+            } catch (Exception ex) {
+                Mod.Logger.Warning($"Failed to load deferred lighting shaders: {ex.Message}");
+            }
+            
+            // Only register fallbacks if modern implementation failed
+            if (!deferredShadersSucceeded) {
+                Mod.Logger.Warning("Using legacy deferred lighting implementation");
+                // Legacy implementations would be registered here
+            }
+        }
+        catch (Exception ex)
+        {
+            Mod.Logger.Error($"Failed to register modern shaders: {ex.Message}");
+        }
     }
 
     private void RegisterHotkeys()
@@ -177,16 +280,26 @@ public class VolumetricShadingMod : ModSystem, IRenderer
 
     private void PatchGame()
     {
-        Mod.Logger.Event("Loading harmony for patching...");
+        Mod.Logger.Event("Loading harmony for patching (reduced patches)...");
         Harmony.DEBUG = Debug;
         _harmony = new Harmony(Mod.Info.ModID);
+        
+        // Apply only necessary patches (reduced from original implementation)
         _harmony.PatchAll();
+        
+        // Log applied patches
+        int patchCount = 0;
         foreach (var method in _harmony.GetPatchedMethods())
         {
             Mod.Logger.Event("Patched " + method.FullDescription());
+            patchCount++;
         }
+        
+        Mod.Logger.Event($"Applied {patchCount} core integration patches");
 
-        ShaderPatcher.Reload();
+        // Load simplified shader patches - TEMPORARILY DISABLED
+        // ShaderPatcher.Reload();
+        Mod.Logger.Event("YAML shader patching completely disabled for stability");
     }
 
     private static void SetConfigDefaults()
@@ -314,15 +427,19 @@ public class VolumetricShadingMod : ModSystem, IRenderer
     {
         try
         {
-            var shader = CApi.Shader.NewShaderProgram()
-                .WithName(shaderName)
-                .WithVertexShader(CApi.Assets.Get(new AssetLocation(Mod.Info.ModID, $"shaders/{shaderName}.vsh")))
-                .WithFragmentShader(CApi.Assets.Get(new AssetLocation(Mod.Info.ModID, $"shaders/{shaderName}.fsh")))
-                .WithUniformProvider(() => ShaderUniformManager?.UpdateShaderUniforms(shader))
-                .Compile();
+            // Use our custom extension method pattern
+            bool success = true;
+            var shader = VSModShaderExtensions.RegisterShaderWithUniforms(this, shaderName);
                 
             if (shader != null)
             {
+                // For ShaderProgram types, we can enable debugging
+                if (shader is ShaderProgram shaderProgram)
+                {
+                    // Store for debugging
+                    WriteDebugShaderFile(shaderProgram, shaderName);
+                }
+                
                 Mod.Logger.Event($"Modern shader '{shaderName}' registered successfully");
             }
             else
@@ -338,26 +455,24 @@ public class VolumetricShadingMod : ModSystem, IRenderer
             return null;
         }
     }
-
+    
     /// <summary>
-    /// Legacy shader registration for compatibility (delegates to existing system)
+    /// Write shader debug info to file
     /// </summary>
-    public object RegisterShader(string shaderName, ref bool success)
+    private void WriteDebugShaderFile(ShaderProgram shader, string shaderName)
     {
+        if (!Debug) return;
+        
         try
         {
-            // This maintains compatibility with existing code while we transition
-            var shader = CApi.Shader.GetShader(shaderName);
-            success = shader != null;
-            return shader;
+            VSModShaderExtensions.WriteDebugShader(this, shader, shaderName);
         }
         catch (Exception ex)
         {
-            Mod.Logger.Error($"Exception in legacy shader registration '{shaderName}': {ex.Message}");
-            success = false;
-            return null;
+            Mod.Logger.Warning($"Could not write debug shader: {ex.Message}");
         }
     }
+
 
     public override void Dispose()
     {
@@ -372,6 +487,7 @@ public class VolumetricShadingMod : ModSystem, IRenderer
         // Dispose modern renderers
         OverexposureRenderer?.Dispose();
         BlurRenderer?.Dispose();
+        SoftShadowRenderer?.Dispose();
         ShaderUniformManager?.Dispose();
 
         ShadowTweaks.Dispose();

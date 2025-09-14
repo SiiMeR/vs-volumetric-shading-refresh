@@ -2,8 +2,10 @@ using System;
 using System.Collections.Generic;
 using OpenTK.Graphics.OpenGL;
 using Vintagestory.API.Client;
+using Vintagestory.API.Common;
 using Vintagestory.API.MathTools;
 using Vintagestory.Client.NoObf;
+using volumetricshadingupdated.VolumetricShading;
 
 namespace volumetricshadingupdated.VolumetricShading.Effects;
 
@@ -77,44 +79,20 @@ public class BlurRenderer : IRenderer
         
         try
         {
-            // Create horizontal blur shader
-            _blurHorizontalShader = _mod.CApi.Shader.NewShaderProgram()
-                .WithName("blur_horizontal")
-                .WithVertexShader(_mod.CApi.Assets.Get(new AssetLocation(_mod.Mod.Info.ModID, "shaders/blur_horizontal.vsh")))
-                .WithFragmentShader(_mod.CApi.Assets.Get(new AssetLocation(_mod.Mod.Info.ModID, "shaders/blur_horizontal.fsh")))
-                .WithUniformProvider(() => {
-                    if (_tempFrameBuffer1 != null)
-                    {
-                        _blurHorizontalShader.Uniform("texelSize", 1.0f / _tempFrameBuffer1.Width, 0.0f);
-                        _blurHorizontalShader.Uniform("blurRadius", _blurRadius);
-                        _blurHorizontalShader.Uniform("blurSamples", _blurSamples);
-                    }
-                })
-                .Compile();
-            
-            // Create vertical blur shader
-            _blurVerticalShader = _mod.CApi.Shader.NewShaderProgram()
-                .WithName("blur_vertical")
-                .WithVertexShader(_mod.CApi.Assets.Get(new AssetLocation(_mod.Mod.Info.ModID, "shaders/blur_vertical.vsh")))
-                .WithFragmentShader(_mod.CApi.Assets.Get(new AssetLocation(_mod.Mod.Info.ModID, "shaders/blur_vertical.fsh")))
-                .WithUniformProvider(() => {
-                    if (_tempFrameBuffer1 != null)
-                    {
-                        _blurVerticalShader.Uniform("texelSize", 0.0f, 1.0f / _tempFrameBuffer1.Height);
-                        _blurVerticalShader.Uniform("blurRadius", _blurRadius);
-                        _blurVerticalShader.Uniform("blurSamples", _blurSamples);
-                    }
-                })
-                .Compile();
+            // Use our extended shader registration
+            bool horizontalSuccess = true;
+            bool verticalSuccess = true;
+            _blurHorizontalShader = (IShaderProgram)VSModShaderExtensions.RegisterVSModShader(_mod, "blur_horizontal", ref horizontalSuccess);
+            _blurVerticalShader = (IShaderProgram)VSModShaderExtensions.RegisterVSModShader(_mod, "blur_vertical", ref verticalSuccess);
 
-            if (_blurHorizontalShader != null && _blurVerticalShader != null)
+            success = horizontalSuccess && verticalSuccess && _blurHorizontalShader != null && _blurVerticalShader != null;
+            if (success)
             {
-                _mod.Mod.Logger.Event("Blur shaders compiled successfully");
+                _mod.Mod.Logger.Event("Blur shaders loaded successfully");
             }
             else
             {
-                _mod.Mod.Logger.Error("Failed to compile blur shaders");
-                success = false;
+                _mod.Mod.Logger.Error("Failed to load blur shaders");
             }
         }
         catch (Exception ex)
@@ -163,7 +141,7 @@ public class BlurRenderer : IRenderer
             };
 
             GL.BindFramebuffer(FramebufferTarget.Framebuffer, _tempFrameBuffer1.FboId);
-            _tempFrameBuffer1.SetupColorTexture(0, PixelInternalFormat.Rgba16f); // Higher precision for blur
+            _tempFrameBuffer1.SetupColorTexture(0); // Higher precision for blur
             GL.DrawBuffer(DrawBufferMode.ColorAttachment0);
             Framebuffers.CheckStatus();
             
@@ -177,7 +155,7 @@ public class BlurRenderer : IRenderer
             };
 
             GL.BindFramebuffer(FramebufferTarget.Framebuffer, _tempFrameBuffer2.FboId);
-            _tempFrameBuffer2.SetupColorTexture(0, PixelInternalFormat.Rgba16f);
+            _tempFrameBuffer2.SetupColorTexture(0);
             GL.DrawBuffer(DrawBufferMode.ColorAttachment0);
             Framebuffers.CheckStatus();
             
@@ -195,8 +173,8 @@ public class BlurRenderer : IRenderer
 
     public void OnRenderFrame(float deltaTime, EnumRenderStage stage)
     {
-        // Blur is typically applied to bloom or glow effects
-        if (stage == EnumRenderStage.AfterBloom && _enabled && 
+        // Blur is typically applied to after effects
+        if (stage == EnumRenderStage.AfterOIT && _enabled && 
             _blurHorizontalShader != null && _blurVerticalShader != null && 
             _tempFrameBuffer1 != null && _tempFrameBuffer2 != null)
         {
@@ -227,7 +205,7 @@ public class BlurRenderer : IRenderer
             GL.Clear(ClearBufferMask.ColorBufferBit);
             
             _blurHorizontalShader.Use();
-            _blurHorizontalShader.BindTexture2D("inputTexture", sourceTextureId);
+            _blurHorizontalShader.BindTexture2D("inputTexture", sourceTextureId, 0);
             
             _platform.RenderFullscreenTriangle(_screenQuad);
             _blurHorizontalShader.Stop();
@@ -246,7 +224,7 @@ public class BlurRenderer : IRenderer
             GL.Clear(ClearBufferMask.ColorBufferBit);
             
             _blurVerticalShader.Use();
-            _blurVerticalShader.BindTexture2D("inputTexture", _tempFrameBuffer1.ColorTextureIds[0]);
+            _blurVerticalShader.BindTexture2D("inputTexture", _tempFrameBuffer1.ColorTextureIds[0], 0);
             
             _platform.RenderFullscreenTriangle(_screenQuad);
             _blurVerticalShader.Stop();

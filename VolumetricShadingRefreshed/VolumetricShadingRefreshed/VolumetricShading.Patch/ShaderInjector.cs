@@ -29,7 +29,11 @@ public class ShaderInjector
         _domain = domain;
         ShaderProperties = new List<IShaderProperty>();
         GeneratedValues = new Dictionary<string, string>();
-        this.RegisterStaticProperty("#define VOLUMETRICSHADINGMOD\r\n");
+        // TEMPORARILY DISABLED: All shader property registration disabled
+        // this.RegisterStaticProperty("#define VOLUMETRICSHADINGMOD\r\n");
+        
+        // MINIMAL RE-ENABLE: Register essential properties for vanilla shaders
+        RegisterEssentialProperties();
     }
 
     public IList<IShaderProperty> ShaderProperties { get; }
@@ -49,6 +53,7 @@ public class ShaderInjector
 
     public void OnShaderLoaded(ShaderProgram program, EnumShaderType shaderType)
     {
+        // MINIMAL RE-ENABLE: Only apply essential shader properties, no snippet/generated processing
         var ext = ".unknown";
         Shader shader = null;
         switch (shaderType)
@@ -72,16 +77,19 @@ public class ShaderInjector
             return;
         }
 
+        // Apply only essential shader properties (not snippet/generated processing)
         var stringBuilder = new StringBuilder();
         foreach (var shaderProperty in ShaderProperties)
         {
             stringBuilder.Append(shaderProperty.GenerateOutput());
         }
 
-        var obj = shader;
-        obj.PrefixCode += stringBuilder.ToString();
-        shader.Code = HandleGenerated(shader.Code);
-        shader.Code = HandleSnippets(shader.Code);
+        if (stringBuilder.Length > 0)
+        {
+            var obj = shader;
+            obj.PrefixCode += stringBuilder.ToString();
+        }
+
         if (Debug)
         {
             var text2 = Path.Combine(GamePaths.DataPath, "ShaderDebug");
@@ -115,5 +123,32 @@ public class ShaderInjector
     {
         var text = match.Groups[1].Value.Trim();
         return _capi.Assets.Get(new AssetLocation(_domain, "shadersnippets/" + text)).ToText();
+    }
+    
+    /// <summary>
+    /// Register essential shader properties needed for vanilla game shaders
+    /// This is a minimal implementation to fix godrays.fsh without enabling full shader modification
+    /// </summary>
+    private void RegisterEssentialProperties()
+    {
+        // Register properties needed by godrays.fsh
+        this.RegisterFloatProperty("VOLUMETRIC_INTENSITY", () => {
+            // Use game setting for volumetric lighting intensity
+            // If godrays are disabled, return 0, otherwise return a reasonable default
+            return _capi.Settings.Int["godRays"] > 0 ? 0.3f : 0.0f;
+        });
+        
+        this.RegisterFloatProperty("VOLUMETRIC_FLATNESS", () => {
+            // Return a reasonable default value for volumetric flatness
+            return _capi.Settings.Int["godRays"] > 0 ? 0.8f : 0.0f;
+        });
+    }
+    
+    /// <summary>
+    /// Register a float property for shaders (simplified version)
+    /// </summary>
+    private void RegisterFloatProperty(string name, Func<float> valueProvider)
+    {
+        this.RegisterShaderProperty(new FloatValueShaderProperty(name, valueProvider));
     }
 }

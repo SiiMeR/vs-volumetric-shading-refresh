@@ -1,8 +1,10 @@
 using System;
 using OpenTK.Graphics.OpenGL;
 using Vintagestory.API.Client;
+using Vintagestory.API.Common;
 using Vintagestory.API.MathTools;
 using Vintagestory.Client.NoObf;
+using volumetricshadingupdated.VolumetricShading;
 
 namespace volumetricshadingupdated.VolumetricShading.Effects;
 
@@ -89,34 +91,18 @@ public class SoftShadowRenderer : IRenderer
         
         try
         {
-            // Create dedicated soft shadow shader
-            _softShadowShader = _mod.CApi.Shader.NewShaderProgram()
-                .WithName("soft_shadows")
-                .WithVertexShader(_mod.CApi.Assets.Get(new AssetLocation(_mod.Mod.Info.ModID, "shaders/softshadow.vsh")))
-                .WithFragmentShader(_mod.CApi.Assets.Get(new AssetLocation(_mod.Mod.Info.ModID, "shaders/softshadow.fsh")))
-                .WithUniformProvider(() => {
-                    _softShadowShader.Uniform("softShadowSamples", _shadowSamples);
-                    _softShadowShader.Uniform("nearShadowWidth", _nearShadowWidth);
-                    _softShadowShader.Uniform("farShadowWidth", _farShadowWidth);
-                    _softShadowShader.Uniform("shadowRadius", _shadowRadius);
-                    
-                    // Shadow bias uniforms
-                    _softShadowShader.Uniform("nearShadowOffset", ModSettings.NearPeterPanningAdjustment * 0.01f);
-                    _softShadowShader.Uniform("farShadowOffset", ModSettings.FarPeterPanningAdjustment * 0.01f);
-                    
-                    // Time-based dithering for temporal anti-aliasing
-                    _softShadowShader.Uniform("frameTime", (float)_mod.CApi.InWorldEllapsedMilliseconds * 0.001f);
-                })
-                .Compile();
+            // Use our extended shader registration
+            bool shaderSuccess = true;
+            _softShadowShader = (IShaderProgram)VSModShaderExtensions.RegisterVSModShader(_mod, "softshadow", ref shaderSuccess);
 
-            if (_softShadowShader != null)
+            success = shaderSuccess && _softShadowShader != null;
+            if (success)
             {
-                _mod.Mod.Logger.Event("Soft shadow shader compiled successfully");
+                _mod.Mod.Logger.Event("Soft shadow shader loaded successfully");
             }
             else
             {
-                _mod.Mod.Logger.Error("Failed to compile soft shadow shader");
-                success = false;
+                _mod.Mod.Logger.Error("Failed to load soft shadow shader");
             }
         }
         catch (Exception ex)
@@ -167,7 +153,7 @@ public class SoftShadowRenderer : IRenderer
             GL.FramebufferTexture2D(FramebufferTarget.Framebuffer, FramebufferAttachment.DepthAttachment,
                 TextureTarget.Texture2D, _shadowFrameBuffer.DepthTextureId, 0);
             
-            _shadowFrameBuffer.SetupColorTexture(0, PixelInternalFormat.R16f); // Single channel for shadow factor
+            _shadowFrameBuffer.SetupColorTexture(0); // Single channel for shadow factor
             
             GL.DrawBuffer(DrawBufferMode.ColorAttachment0);
             Framebuffers.CheckStatus();
@@ -185,8 +171,8 @@ public class SoftShadowRenderer : IRenderer
 
     public void OnRenderFrame(float deltaTime, EnumRenderStage stage)
     {
-        // Apply soft shadows during shadow processing stage
-        if (stage == EnumRenderStage.Shadows && _enabled && 
+        // Apply soft shadows during opaque rendering stage
+        if (stage == EnumRenderStage.Opaque && _enabled && 
             _softShadowShader != null && _shadowFrameBuffer != null)
         {
             ApplySoftShadows();
@@ -217,11 +203,11 @@ public class SoftShadowRenderer : IRenderer
                 var render = _mod.CApi.Render;
                 var uniforms = render.ShaderUniforms;
                 
-                // Bind shadow textures
-                _softShadowShader.BindTexture2D("shadowMapNearTex", uniforms.ShadowMapNear);
-                _softShadowShader.BindTexture2D("shadowMapFarTex", uniforms.ShadowMapFar);
-                _softShadowShader.BindTexture2D("depthTexture", fbPrimary.DepthTextureId);
-                _softShadowShader.BindTexture2D("normalTexture", fbPrimary.ColorTextureIds[2]); // G-buffer normals
+                // Bind shadow textures with texture slots
+                _softShadowShader.BindTexture2D("shadowMapNearTex", fbPrimary.DepthTextureId, 0); // Placeholder for now
+                _softShadowShader.BindTexture2D("shadowMapFarTex", fbPrimary.DepthTextureId, 1); // Placeholder for now  
+                _softShadowShader.BindTexture2D("depthTexture", fbPrimary.DepthTextureId, 2);
+                _softShadowShader.BindTexture2D("normalTexture", fbPrimary.ColorTextureIds[2], 3); // G-buffer normals
                 
                 // Set shadow matrices
                 _softShadowShader.UniformMatrix("toShadowMapSpaceMatrixNear", uniforms.ToShadowMapSpaceMatrixNear);

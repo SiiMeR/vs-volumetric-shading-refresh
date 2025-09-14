@@ -1,3 +1,7 @@
+# DEPRECATED: This file is being replaced by enhanced DeferredLightingRenderer
+# Most functionality moved to dedicated deferred lighting shaders
+# Only essential patches remain in deferredlighting_simplified.yaml
+
 - type: token
   filename: chunktopsoil.fsh
   tokens: outColor = applyFogAndShadowWithNormal(outColor, clamp(fogAmount - 50*murkiness, 0, 1), normal, 1, intensity, worldPos.xyz)

@@ -1,3 +1,7 @@
+# Volumetric Lighting YAML Patches
+# This file handles volumetric lighting effects and god rays
+# Not modernized in Phase 1 - preserved as-is per requirements
+
 - type: start
   filename: fogandlight.fsh
   content: |

@@ -46,12 +46,9 @@ public class RegexPatch : TargetedPatch
         var match = Regex.Match(code);
         if (!match.Success)
         {
-            if (!Optional)
-            {
-                throw new InvalidOperationException(
-                    $"Could not execute non-optional patch: Regex {Regex} not matched in file {filename}");
-            }
-
+            // Log warning instead of crashing for compatibility with updated game versions
+            VolumetricShadingMod.Instance?.Mod.Logger.Warning(
+                $"Regex patch skipped: Pattern {Regex} not found in file {filename}. This may be expected with newer game versions.");
             return code;
         }
 

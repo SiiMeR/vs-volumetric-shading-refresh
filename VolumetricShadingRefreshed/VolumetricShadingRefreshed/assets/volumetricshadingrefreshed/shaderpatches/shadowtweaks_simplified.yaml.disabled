@@ -1,0 +1,34 @@
+# Shadow Tweaks - Simplified YAML Patches
+# Reduced to essential shadow bias adjustments only
+# Soft shadow functionality moved to dedicated shader
+
+# Near shadow bias adjustments
+- type: token
+  filename: shadowcoords.fsh
+  tokens: float bias = 0.0005 * tan(acos(cosTheta));
+  content: |
+    float bias = 0.0005 * tan(acos(cosTheta));
+    #if VSMOD_SOFT_SHADOWS_ENABLED
+    bias *= nearShadowBias * 50.0;
+    #endif
+    bias = clamp(bias, 0.0, 0.01);
+
+# Far shadow bias adjustments
+- type: token
+  filename: shadowcoords.fsh
+  tokens: float bias2 = 0.001 * tan(acos(cosTheta));
+  content: |
+    float bias2 = 0.001 * tan(acos(cosTheta));
+    #if VSMOD_SOFT_SHADOWS_ENABLED
+    bias2 *= farShadowBias * 20.0;
+    #endif
+    bias2 = clamp(bias2, 0.0, 0.02);
+
+# Declare needed uniforms
+- type: start
+  filename: shadowcoords.fsh
+  content: |
+    #if SHADOWQUALITY > 0 && VSMOD_SOFT_SHADOWS_ENABLED
+    uniform float nearShadowBias;
+    uniform float farShadowBias;
+    #endif

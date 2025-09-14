@@ -1,28 +1,19 @@
 #version 330 core
+// Soft shadow vertex shader
+// Simple fullscreen quad implementation
 
-// Soft Shadow Vertex Shader
-// PCSS (Percentage Closer Soft Shadows) implementation
-// Replaces YAML-based soft shadow patches
-
-in vec3 vertex;
+// Vertex attributes
+in vec3 position;
 in vec2 uv;
 
+// Output to fragment shader
 out vec2 texCoord;
-out vec3 rayDirection;
-
-uniform mat4 invProjectionMatrix;
-uniform mat4 invModelViewMatrix;
 
 void main()
 {
-    gl_Position = vec4(vertex, 1.0);
+    // Pass texture coordinates to fragment shader
     texCoord = uv;
     
-    // Calculate ray direction for world-space position reconstruction
-    vec4 clipSpace = vec4(vertex.xy, -1.0, 1.0);
-    vec4 viewSpace = invProjectionMatrix * clipSpace;
-    viewSpace /= viewSpace.w;
-    
-    vec4 worldSpace = invModelViewMatrix * viewSpace;
-    rayDirection = worldSpace.xyz;
+    // Set position (fullscreen quad)
+    gl_Position = vec4(position, 1.0);
 }

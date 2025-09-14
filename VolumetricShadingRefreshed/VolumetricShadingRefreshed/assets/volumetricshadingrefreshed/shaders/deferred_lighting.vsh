@@ -1,5 +1,5 @@
 #version 330 core
-// Overexposure vertex shader
+// Deferred lighting pass vertex shader
 // Simple fullscreen quad implementation
 
 // Vertex attributes

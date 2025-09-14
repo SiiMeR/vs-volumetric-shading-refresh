@@ -112,32 +112,6 @@
             buildMod
           ];
 
-          shellHook = ''
-            echo "🎮 Vintage Story FSR2 Mod Development Environment"
-            echo "================================================"
-
-            # Set up .NET environment
-            export DOTNET_ROOT="${pkgs.dotnet-sdk_8}"
-            export PATH="$DOTNET_ROOT/bin:$PATH"
-
-            # Disable .NET telemetry
-            export DOTNET_CLI_TELEMETRY_OPTOUT=1
-
-            # Set up NuGet packages location
-            export NUGET_PACKAGES="$PWD/.nuget/packages"
-
-            # Create .nuget directory if it doesn't exist
-            mkdir -p .nuget/packages
-
-            # Show environment info
-            echo "📦 .NET SDK Version: $(dotnet --version)"
-            echo "🔧 MSBuild Version: $(msbuild -version | head -n1)"
-            echo ""
-
-            # Run setup script
-            setup-vintage-story
-          '';
-
           # Environment variables that persist in the shell
           DOTNET_CLI_TELEMETRY_OPTOUT = "1";
           DOTNET_SKIP_FIRST_TIME_EXPERIENCE = "1";

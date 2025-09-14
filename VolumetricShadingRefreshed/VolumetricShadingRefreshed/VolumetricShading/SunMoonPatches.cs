@@ -107,14 +107,14 @@ internal class SunMoonPatches
     [HarmonyPostfix]
     private static void AfterRender()
     {
-        VolumetricShadingMod.Instance.OverexposureEffect.OnRenderedSun();
+        VolumetricShadingMod.Instance.OverexposureEffect?.OnRenderedSun();
     }
 
     [HarmonyPatch("OnRenderFrame3DPost")]
     [HarmonyPostfix]
     private static void AfterRenderPost()
     {
-        VolumetricShadingMod.Instance.OverexposureEffect.OnRenderedSun();
+        VolumetricShadingMod.Instance.OverexposureEffect?.OnRenderedSun();
     }
 
     // ====================================================================

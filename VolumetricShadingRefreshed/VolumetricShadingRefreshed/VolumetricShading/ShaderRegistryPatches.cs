@@ -9,6 +9,7 @@ using Vintagestory.Client.NoObf;
 
 namespace volumetricshadingupdated.VolumetricShading;
 
+// MINIMAL RE-ENABLE: Only essential patches for shader property injection
 [HarmonyPatch(typeof(ShaderRegistry))]
 internal class ShaderRegistryPatches
 {
@@ -24,11 +25,12 @@ internal class ShaderRegistryPatches
     private static readonly MethodInfo LoadRegisteredCallsiteMethod =
         typeof(ShaderRegistryPatches).GetMethod("LoadRegisteredCallsite");
 
+    // MINIMAL RE-ENABLE: Only essential shader property injection
     [HarmonyPatch("LoadShader")]
     [HarmonyPostfix]
     public static void LoadShaderPostfix(ShaderProgram program, EnumShaderType shaderType)
     {
-        //IL_000b: Unknown result type (might be due to invalid IL or missing references)
+        // Only apply essential properties, no complex processing
         VolumetricShadingMod.Instance.ShaderInjector.OnShaderLoaded(program, shaderType);
     }
 
@@ -39,8 +41,9 @@ internal class ShaderRegistryPatches
         throw new InvalidOperationException("Stub, replaced by Harmony");
     }
 
-    [HarmonyPatch("LoadShader")]
-    [HarmonyTranspiler]
+    // TEMPORARILY DISABLED: Transpiler disabled to prevent preprocessor errors
+    // [HarmonyPatch("LoadShader")]
+    // [HarmonyTranspiler]
     public static IEnumerable<CodeInstruction> LoadShaderTranspiler(IEnumerable<CodeInstruction> instructions)
     {
         var found = false;

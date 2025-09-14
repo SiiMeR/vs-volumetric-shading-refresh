@@ -1,0 +1,24 @@
+# Simplified Deferred Lighting Patches
+# Most functionality moved to dedicated DeferredLightingRenderer with custom shaders
+# Only essential integration points remain here
+
+# Essential G-buffer output for block brightness (core integration required)
+- type: token
+  filename: chunkopaque.fsh
+  tokens: vec4(glowLevel + glow, godrayLevel, 0, min(1, fogAmount + outColor.a));
+  content: |
+    #if SHADOWQUALITY > 0
+    vec4(glowLevel + glow, godrayLevel, blockBrightness, min(1, fogAmount + outColor.a));
+    #else
+    vec4(glowLevel + glow, godrayLevel, 0, min(1, fogAmount + outColor.a));
+    #endif
+
+- type: token
+  filename: standard.fsh
+  tokens: vec4(glowLevel + glow, extraGodray - fogAmount, 0, outColor.a);
+  content: |
+    #if SHADOWQUALITY > 0
+    vec4(glowLevel + glow, extraGodray - fogAmount, blockBrightness, outColor.a);
+    #else
+    vec4(glowLevel + glow, extraGodray - fogAmount, 0, outColor.a);
+    #endif

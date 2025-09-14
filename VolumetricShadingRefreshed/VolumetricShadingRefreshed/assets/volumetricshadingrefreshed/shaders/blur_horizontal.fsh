@@ -1,85 +1,66 @@
 #version 330 core
+// Horizontal Gaussian blur shader
+// Separable blur implementation for better performance
 
-// Horizontal Blur Fragment Shader
-// High-quality Gaussian blur horizontal pass
-// Modern replacement for simple YAML-based blur patches
+// Input from vertex shader
+in highp vec2 texCoord;
 
-in vec2 texCoord;
-in vec2 blurTexCoords[9];
+// Output
+layout(location = 0) out highp vec4 outColor;
 
-out vec4 outColor;
-
+// Textures
 uniform sampler2D inputTexture;
-uniform int blurSamples;
 
-// Gaussian weights for different sample counts
-// Pre-calculated for performance
-const float gaussianWeights5[5] = float[](
-    0.2270270270, 0.3162162162, 0.0702702703, 0.3162162162, 0.2270270270
-);
+// Blur parameters
+uniform float blurRadius = 4.0;
+uniform int blurSamples = 9; // Should be odd number
+uniform vec2 viewResolution;
 
-const float gaussianWeights7[7] = float[](
-    0.0702702703, 0.3162162162, 0.2270270270, 0.3243243243, 0.2270270270, 0.3162162162, 0.0702702703
-);
-
-const float gaussianWeights9[9] = float[](
-    0.0205, 0.0855, 0.2320, 0.3423, 0.3843, 0.3423, 0.2320, 0.0855, 0.0205
-);
-
-vec4 applyGaussianBlur()
-{
-    vec4 result = vec4(0.0);
-    
-    if (blurSamples == 5)
-    {
-        for (int i = 0; i < 5; i++)
-        {
-            result += texture(inputTexture, blurTexCoords[i]) * gaussianWeights5[i];
-        }
-    }
-    else if (blurSamples == 7)
-    {
-        for (int i = 0; i < 7; i++)
-        {
-            result += texture(inputTexture, blurTexCoords[i]) * gaussianWeights7[i];
-        }
-    }
-    else if (blurSamples == 9)
-    {
-        for (int i = 0; i < 9; i++)
-        {
-            result += texture(inputTexture, blurTexCoords[i]) * gaussianWeights9[i];
-        }
-    }
-    else
-    {
-        // Fallback for other sample counts - dynamic weight calculation
-        float totalWeight = 0.0;
-        int halfSamples = blurSamples / 2;
-        float sigma = float(halfSamples) / 3.0; // Standard deviation
-        
-        for (int i = 0; i < blurSamples && i < 9; i++)
-        {
-            float x = float(i - halfSamples);
-            float weight = exp(-(x * x) / (2.0 * sigma * sigma));
-            result += texture(inputTexture, blurTexCoords[i]) * weight;
-            totalWeight += weight;
-        }
-        
-        result /= totalWeight; // Normalize
-    }
-    
-    return result;
-}
+// Performance settings
+uniform float qualityLevel = 1.0;
 
 void main()
 {
-    if (blurSamples <= 1)
+    // Calculate pixel size for correct blur radius
+    highp vec2 texSize = 1.0 / viewResolution;
+    highp vec2 pixelSize = vec2(texSize.x, 0.0); // Horizontal only
+    
+    // Dynamic quality adjustment
+    int actualSamples = int(max(3.0, float(blurSamples) * qualityLevel));
+    if ((actualSamples & 1) == 0) actualSamples--; // Ensure odd number
+    
+    // Calculate Gaussian weights
+    highp float sigma = blurRadius * 0.5;
+    highp float weightSum = 0.0;
+    highp vec4 result = vec4(0.0);
+    
+    // Center sample
+    highp vec4 centerSample = texture(inputTexture, texCoord);
+    highp float centerWeight = exp(-(0.0 * 0.0) / (2.0 * sigma * sigma));
+    result += centerSample * centerWeight;
+    weightSum += centerWeight;
+    
+    // Side samples with Gaussian weights
+    int halfSamples = actualSamples / 2;
+    
+    for (int i = 1; i <= halfSamples; i++)
     {
-        // No blur - pass through
-        outColor = texture(inputTexture, texCoord);
-        return;
+        // Weight calculation using Gaussian function
+        highp float weight = exp(-(float(i) * float(i)) / (2.0 * sigma * sigma));
+        
+        // Sample in positive direction
+        highp vec2 offset = pixelSize * float(i);
+        highp vec4 sample1 = texture(inputTexture, texCoord + offset);
+        result += sample1 * weight;
+        
+        // Sample in negative direction
+        highp vec4 sample2 = texture(inputTexture, texCoord - offset);
+        result += sample2 * weight;
+        
+        // Add weights to sum for normalization
+        weightSum += weight * 2.0;
     }
     
-    outColor = applyGaussianBlur();
+    // Normalize by weight sum to preserve brightness
+    outColor = result / weightSum;
 }

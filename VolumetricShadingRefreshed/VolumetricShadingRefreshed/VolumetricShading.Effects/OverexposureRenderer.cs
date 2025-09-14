@@ -1,9 +1,10 @@
 using System;
 using OpenTK.Graphics.OpenGL;
 using Vintagestory.API.Client;
+using Vintagestory.API.Common;
 using Vintagestory.API.MathTools;
 using Vintagestory.Client.NoObf;
-using volumetricshadingupdated.VolumetricShading.Patch;
+using volumetricshadingupdated.VolumetricShading;
 
 namespace volumetricshadingupdated.VolumetricShading.Effects;
 
@@ -79,34 +80,18 @@ public class OverexposureRenderer : IRenderer
         
         try
         {
-            // Create dedicated overexposure shader using official APIs
-            _overexposureShader = _mod.CApi.Shader.NewShaderProgram()
-                .WithName("overexposure_postprocess")
-                .WithVertexShader(_mod.CApi.Assets.Get(new AssetLocation(_mod.Mod.Info.ModID, "shaders/overexposure.vsh")))
-                .WithFragmentShader(_mod.CApi.Assets.Get(new AssetLocation(_mod.Mod.Info.ModID, "shaders/overexposure.fsh")))
-                .WithUniformProvider(() => {
-                    // Direct uniform setting - no string manipulation needed
-                    _overexposureShader.Uniform("overexposureIntensity", ModSettings.OverexposureIntensity * 0.01f);
-                    _overexposureShader.Uniform("sunBloomIntensity", ModSettings.SunBloomIntensity * 0.01f);
-                    _overexposureShader.Uniform("fogDensityIn", _mod.CApi.Render.FogDensity);
-                    _overexposureShader.Uniform("viewDistance", (float)ClientSettings.ViewDistance);
-                    
-                    // Time-based effects for dynamic overexposure
-                    var dayLight = _mod.Uniforms.DayLight;
-                    _overexposureShader.Uniform("dayLight", dayLight);
-                    _overexposureShader.Uniform("timeOfDay", (float)_mod.CApi.World.Calendar.HourOfDay / 24f);
-                })
-                .Compile();
+            // Use our extended shader registration
+            bool shaderSuccess = true;
+            _overexposureShader = (IShaderProgram)VSModShaderExtensions.RegisterVSModShader(_mod, "overexposure", ref shaderSuccess);
 
-            if (_overexposureShader != null)
+            success = shaderSuccess && _overexposureShader != null;
+            if (success)
             {
-                _mod.Mod.Logger.Event("Overexposure shader compiled successfully");
-                success = true;
+                _mod.Mod.Logger.Event("Overexposure shader loaded successfully");
             }
             else
             {
-                _mod.Mod.Logger.Error("Failed to compile overexposure shader");
-                success = false;
+                _mod.Mod.Logger.Error("Failed to load overexposure shader");
             }
         }
         catch (Exception ex)
@@ -201,11 +186,11 @@ public class OverexposureRenderer : IRenderer
             // Use our dedicated overexposure shader
             _overexposureShader.Use();
             
-            // Bind input textures
-            _overexposureShader.BindTexture2D("inputTexture", fbPrimary.ColorTextureIds[0]);
-            _overexposureShader.BindTexture2D("depthTexture", fbPrimary.DepthTextureId);
-            _overexposureShader.BindTexture2D("normalTexture", fbPrimary.ColorTextureIds[2]); // G-buffer normals
-            _overexposureShader.BindTexture2D("glowTexture", fbPrimary.ColorTextureIds[1]); // Glow buffer
+            // Bind input textures (3-parameter version)
+            _overexposureShader.BindTexture2D("inputTexture", fbPrimary.ColorTextureIds[0], 0);
+            _overexposureShader.BindTexture2D("depthTexture", fbPrimary.DepthTextureId, 1);
+            _overexposureShader.BindTexture2D("normalTexture", fbPrimary.ColorTextureIds[2], 2); // G-buffer normals
+            _overexposureShader.BindTexture2D("glowTexture", fbPrimary.ColorTextureIds[1], 3); // Glow buffer
             
             // Set up screen-space to world-space transformation matrices
             var render = _mod.CApi.Render;

@@ -205,13 +205,13 @@ public class ScreenSpaceReflections : IRenderer, IDisposable
             _shaders[i] = null;
         }
 
-        _shaders[0] = _mod.RegisterShader("ssrliquid", ref success);
-        _shaders[1] = _mod.RegisterShader("ssropaque", ref success);
+        _shaders[0] = (IShaderProgram)_mod.RegisterShader("ssrliquid", ref success);
+        _shaders[1] = (IShaderProgram)_mod.RegisterShader("ssropaque", ref success);
         ((ShaderProgram)_shaders[1]).SetCustomSampler("terrainTexLinear", true);
-        _shaders[2] = _mod.RegisterShader("ssrtransparent", ref success);
-        _shaders[3] = _mod.RegisterShader("ssrtopsoil", ref success);
-        _shaders[4] = _mod.RegisterShader("ssrout", ref success);
-        _shaders[5] = _mod.RegisterShader("ssrcausticsout", ref success);
+        _shaders[2] = (IShaderProgram)_mod.RegisterShader("ssrtransparent", ref success);
+        _shaders[3] = (IShaderProgram)_mod.RegisterShader("ssrtopsoil", ref success);
+        _shaders[4] = (IShaderProgram)_mod.RegisterShader("ssrout", ref success);
+        _shaders[5] = (IShaderProgram)_mod.RegisterShader("ssrcausticsout", ref success);
         return success;
     }
 

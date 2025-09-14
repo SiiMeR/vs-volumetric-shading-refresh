@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using OpenTK.Graphics.OpenGL;
 using Vintagestory.API.Client;
+using Vintagestory.API.Common;
 using Vintagestory.API.MathTools;
 using Vintagestory.API.Util;
 using Vintagestory.Client.NoObf;
@@ -22,6 +23,10 @@ public class DeferredLighting
     private MeshRef _screenQuad;
 
     private ShaderProgram _shader;
+    
+    // Modern deferred shaders - replacing YAML patches
+    private IShaderProgram _geometryShader;
+    private IShaderProgram _lightingShader;
 
     public DeferredLighting(VolumetricShadingMod mod)
     {
@@ -65,32 +70,49 @@ public class DeferredLighting
     private bool OnReloadShaders()
     {
         var success = true;
+        
+        // Dispose existing shaders
         var shader = _shader;
         if (shader != null)
         {
             shader.Dispose();
         }
+        _geometryShader?.Dispose();
+        _lightingShader?.Dispose();
 
         try
         {
+            // Load legacy shader for backwards compatibility
             _shader = (ShaderProgram)_mod.RegisterShader("deferredlighting", ref success);
+            
+            // Use legacy shader registration for compatibility
+            bool geometrySuccess = true;
+            bool lightingSuccess = true;
+            _geometryShader = (IShaderProgram)_mod.RegisterShader("deferred_geometry", ref geometrySuccess);
+            _lightingShader = (IShaderProgram)_mod.RegisterShader("deferred_lighting", ref lightingSuccess);
             
             // AMD Compatibility: Validate shader compilation
             if (!success || _shader == null)
             {
-                _mod.Mod.Logger.Error("Deferred lighting shader compilation failed");
-                // Disable deferred lighting on compilation failure
-                _enabled = false;
-                ModSettings.DeferredLightingEnabled = false;
+                _mod.Mod.Logger.Error("Legacy deferred lighting shader compilation failed");
+            }
+            
+            bool modernSuccess = geometrySuccess && lightingSuccess && _geometryShader != null && _lightingShader != null;
+            if (!modernSuccess)
+            {
+                _mod.Mod.Logger.Warning("Modern deferred lighting shaders failed to load - using legacy implementation");
+                // Fallback to legacy implementation
+                _enabled = _shader != null;
             }
             else
             {
-                _mod.Mod.Logger.Event("Deferred lighting shader compiled successfully");
+                _mod.Mod.Logger.Event("Modern deferred lighting shaders loaded successfully");
+                _mod.Mod.Logger.Event("Deferred lighting now uses dedicated shaders instead of YAML patches");
             }
         }
         catch (Exception ex)
         {
-            _mod.Mod.Logger.Error($"Exception loading deferred lighting shader: {ex.Message}");
+            _mod.Mod.Logger.Error($"Exception loading deferred lighting shaders: {ex.Message}");
             success = false;
             _enabled = false;
             ModSettings.DeferredLightingEnabled = false;
@@ -319,6 +341,62 @@ public class DeferredLighting
         }
     }
 
+    /// <summary>
+    /// Modern deferred lighting pass using dedicated shaders instead of YAML patches
+    /// </summary>
+    public void OnRenderModernDeferred()
+    {
+        if (!_enabled || _lightingShader == null || _frameBuffer == null)
+        {
+            return;
+        }
+
+        var stopwatch = _mod.PerformanceManager?.StartTiming("DeferredLighting_Modern");
+        try
+        {
+            var fbPrimary = _platform.FrameBuffers[0];
+            
+            // Disable depth testing for lighting pass
+            _platform.GlDisableDepthTest();
+            _platform.GlToggleBlend(false);
+            
+            // Use modern lighting shader
+            _lightingShader.Use();
+            
+            // Bind G-buffer textures with texture slots
+            _lightingShader.BindTexture2D("gAlbedo", _frameBuffer.ColorTextureIds[0], 0);
+            _lightingShader.BindTexture2D("gNormal", _frameBuffer.ColorTextureIds[1], 1);
+            _lightingShader.BindTexture2D("gMotion", fbPrimary.ColorTextureIds[2], 2);
+            _lightingShader.BindTexture2D("gShadow", fbPrimary.ColorTextureIds[3], 3);
+            _lightingShader.BindTexture2D("gDepth", fbPrimary.DepthTextureId, 4);
+            
+            // Bind shadow maps if available
+            if (ShaderProgramBase.shadowmapQuality > 0)
+            {
+                var render = _mod.CApi.Render;
+                var uniforms = render.ShaderUniforms;
+                
+                // This would need to access the actual shadow map textures
+                // For now, we'll use placeholder binding
+                _lightingShader.BindTexture2D("shadowMapNearTex", fbPrimary.DepthTextureId, 5);
+                _lightingShader.BindTexture2D("shadowMapFarTex", fbPrimary.DepthTextureId, 6);
+            }
+            
+            // Render full-screen quad
+            _platform.RenderFullscreenTriangle(_screenQuad);
+            _lightingShader.Stop();
+            
+            // Restore state
+            _platform.GlEnableDepthTest();
+            
+            _mod.Mod.Logger.Event("Modern deferred lighting pass completed");
+        }
+        finally
+        {
+            _mod.PerformanceManager?.EndTiming("DeferredLighting_Modern", stopwatch);
+        }
+    }
+
     public void Dispose()
     {
         var shader = _shader;
@@ -327,7 +405,14 @@ public class DeferredLighting
             shader.Dispose();
         }
 
+        // Dispose modern shaders
+        _geometryShader?.Dispose();
+        _lightingShader?.Dispose();
+
         _shader = null;
+        _geometryShader = null;
+        _lightingShader = null;
+        
         if (_frameBuffer != null)
         {
             _platform.DisposeFrameBuffer(_frameBuffer);
