@@ -3,3 +3,4 @@
 **/Releases/
 .idea/
 VolumetricShadingRefreshed.sln.DotSettings.user
+.nuget
