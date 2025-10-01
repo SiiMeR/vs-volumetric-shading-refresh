@@ -10,6 +10,15 @@ layout(location = 3) in int renderFlags;
 
 layout(location = 4) in vec2 flowVector;
 
+// Bits 0..7 = season map index
+// Bits 8..11 = climate map index
+// Bits 12 = Frostable bit
+// Bits 13, 14, 15 = free \o/
+// Bits 16-23 = temperature
+// Bits 24-31 = rainfall
+layout(location = 5) in int colormapData;
+
+// Old format:
 // Bit 0: Should animate yes/no
 // Bit 1: Should texture fade yes/no
 // Bits 8-15: x-Distance to upper left corner, where 255 = size of the block texture
@@ -17,15 +26,21 @@ layout(location = 4) in vec2 flowVector;
 // Bit 25: Lava yes/no
 // Bit 26: Weak foamy yes/no
 // Bit 27: Weak Wavy yes/no
-layout(location = 5) in int waterFlagsIn;
 
-// Bits 0..7 = season map index
-// Bits 8..11 = climate map index
-// Bits 12 = Frostable bit
-// Bits 13, 14, 15 = free \o/
-// Bits 16-23 = temperature
-// Bits 24-31 = rainfall
-layout(location = 6) in int colormapData;
+// New format: (from 1.21.0+)
+// Bit 0: Should animate yes/no
+// Bit 1: Should texture fade yes/no
+// Bit 2-9: Oceanity
+// Bits 10-17: x-Distance to upper left corner, where 255 = size of the block texture
+// Bits 18-26: y-Distance to upper left corner, where 255 = size of the block texture
+// Bit 27: Lava yes/no - use LiquidIsLavaBitPosition
+
+// Bit 28: Weak foamy yes/no - use LiquidWeakFoamBitPosition
+// Bit 29: Weak Wavy yes/no - use LiquidWeakWaveBitPosition
+// Bit 30: Don't tweak alpha channel - use LiquidFullAlphaBitPosition
+// Bit 31: LiquidExposedToSky - use LiquidSkyExposedBitPosition
+layout(location = 6) in int waterFlagsIn;
+
 
 uniform vec3 origin;
 uniform mat4 projectionMatrix;
@@ -40,7 +55,7 @@ out vec3 worldNormal;
 out vec3 fragWorldPos;
 out vec2 uv;
 flat out int waterFlags;
-flat out float alpha;
+out float alpha;
 flat out int skyExposed;
 
 
@@ -51,12 +66,24 @@ flat out int skyExposed;
 
 void main(void)
 {
-    worldPos = vec4(vertexPositionIn + origin, 1.0);
+    worldPos = vec4(vertexPositionIn + origin, 1.0); // Dont declare as vec4. it breaks \(O_O)/
 
-    float div = ((waterFlagsIn & (1<<27)) > 0) ? 90 : 10;
-    float yBefore = worldPos.y;
-
-    worldPos = applyLiquidWarping((waterFlagsIn & 0x2000000) == 0, worldPos, div);
+    //float div = ((waterFlagsIn & (1<<27)) > 0) ? 90 : 5;
+    //float yBefore = worldPos.y;
+    if ((waterFlagsIn & 1) == 1)
+    {
+        float div = ((waterFlagsIn & LiquidWeakWaveBitMask) > 0) ? 90 : 5;
+	
+        float oceanity = ((waterFlagsIn >> 2) & 0xff) * OneOver255;
+        div *= max(0.2, 1 - oceanity);
+		
+        worldPos = applyLiquidWarping((waterFlagsIn & LiquidIsLavaBitMask) == 0, worldPos, div);
+    }
+    else if ((waterFlagsIn & LiquidWeakWaveBitMask) > 0)
+    {
+        worldPos = applyLiquidWarping((waterFlagsIn & LiquidIsLavaBitMask) == 0, worldPos, 90);
+    }
+    //worldPos = applyLiquidWarping((waterFlagsIn & 0x2000000) == 0, worldPos, div);
 
     vec4 cameraPos = modelViewMatrix * worldPos;
 
