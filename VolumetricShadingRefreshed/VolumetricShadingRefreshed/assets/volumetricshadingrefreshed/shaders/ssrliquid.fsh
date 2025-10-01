@@ -16,7 +16,7 @@ in vec3 worldNormal;
 in vec2 flowVectorf;
 in vec2 uv;
 flat in int waterFlags;
-flat in float alpha;
+in float alpha;
 flat in int skyExposed;
 
 layout(location = 0) out vec4 outGPosition;
@@ -101,13 +101,13 @@ mat3 cotangentFrame(vec3 N, vec3 p, vec2 uv) {
 
 void main()
 {
-    float isWater = ((waterFlags & (1<<25)) > 0) ? 0.0f : 1.0f;
+    float isWater = ((waterFlags & LiquidWeakWaveBitMask) > 0) ? 0.0f : 1.0f;
     float myAlpha = alpha * isWater;
-    if (myAlpha < 0.5) discard;
+    if (myAlpha < 0.005) discard;
 
     // apply waves
     float caustics = length(flowVectorf) > 0.001 ? 0 : 1;
-    float div = ((waterFlags & (1<<27)) > 0) ? 90 : 10;
+    float div = ((waterFlags & LiquidWeakWaveBitMask) > 0) ? 90 : 5; //Half triangle bug occurred due to not using latest water bitmaps
     //float noise = generateNoise(worldPos.xyz + playerpos.xyz, div, wind);
 
     mat3 tbn = cotangentFrame(worldNormal, worldPos.xyz, uv);
