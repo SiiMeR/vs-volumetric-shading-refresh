@@ -88,8 +88,8 @@ public class DeferredLighting
 
         var fbPrimary = mainBuffers[0];
 
-        var fbWidth = (int)(_platform.window.Bounds.Size.X * ClientSettings.SSAA);
-        var fbHeight = (int)(_platform.window.Bounds.Size.Y * ClientSettings.SSAA);
+        var fbWidth = (int)(fbPrimary.Width * ClientSettings.SSAA);
+        var fbHeight = (int)(fbPrimary.Height * ClientSettings.SSAA);
         if (fbWidth == 0 || fbHeight == 0)
         {
             return;
@@ -102,6 +102,7 @@ public class DeferredLighting
             Height = fbHeight,
             ColorTextureIds = ArrayUtil.CreateFilled(2, _ => GL.GenTexture())
         };
+
         GL.BindFramebuffer(FramebufferTarget.Framebuffer, frameBufferRef.FboId);
         GL.FramebufferTexture2D(FramebufferTarget.Framebuffer, FramebufferAttachment.DepthAttachment,
             TextureTarget.Texture2D, fbPrimary.DepthTextureId, 0);
