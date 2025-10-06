@@ -67,8 +67,13 @@ public class ScreenSpaceReflections : IRenderer, IDisposable
         mod.CApi.Settings.AddWatcher("volumetricshading_SSRRefractions",
             new OnSettingsChanged<bool>(OnRefractionsChanged));
         mod.CApi.Settings.AddWatcher("volumetricshading_SSRCaustics", new OnSettingsChanged<bool>(OnCausticsChanged));
-        mod.CApi.Event.RegisterRenderer(this, EnumRenderStage.Opaque, "ssrWorldSpace");
-        mod.CApi.Event.RegisterRenderer(this, EnumRenderStage.AfterOIT, "ssrOut");
+
+        //mod.CApi.Event.RegisterRenderer(this, EnumRenderStage.Opaque, "ssrWorldSpace");
+        //mod.CApi.Event.RegisterRenderer(this, EnumRenderStage.AfterOIT, "ssrOut");
+
+        // Doing this so Both ssr passes are done afterOIT (the main scene)(it includes mobs/entities, should fix the water in boat bug)
+        mod.CApi.Event.RegisterRenderer(this, EnumRenderStage.AfterOIT, "ssr");
+
         _textureIdsField = typeof(ChunkRenderer).GetField("textureIds", BindingFlags.Instance | BindingFlags.Public);
         mod.Events.RebuildFramebuffers += SetupFramebuffers;
         SetupFramebuffers(_platform.FrameBuffers);
@@ -86,6 +91,7 @@ public class ScreenSpaceReflections : IRenderer, IDisposable
             _chunkRenderer = _game.GetChunkRenderer();
         }
 
+        /* Keeping this here temporarily (also the ones above) just so if any unseen concequences do occurr it'll be easy to fix (hopefully) 
         if (stage == EnumRenderStage.Opaque)
         {
             OnPreRender(deltaTime);
@@ -96,7 +102,15 @@ public class ScreenSpaceReflections : IRenderer, IDisposable
         if (stage == EnumRenderStage.AfterOIT)
         {
             OnRenderSsrOut();
-        }
+        }*/
+
+        // Both pass called in one render stage.
+        if (stage == EnumRenderStage.AfterOIT)
+        {
+            OnPreRender(deltaTime);
+            OnRenderSsrChunks(); 
+            OnRenderSsrOut();
+        } 
     }
 
     public void Dispose()
@@ -125,7 +139,6 @@ public class ScreenSpaceReflections : IRenderer, IDisposable
         _chunkRenderer = null;
         _screenQuad = null;
     }
-
 
     public double RenderOrder => 1.0;
 
