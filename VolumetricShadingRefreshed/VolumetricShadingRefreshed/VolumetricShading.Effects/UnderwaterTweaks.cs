@@ -1,7 +1,7 @@
 using Vintagestory.API.Client;
 using Vintagestory.API.MathTools;
 
-namespace volumetricshadingupdated.VolumetricShading.Effects;
+namespace VolumetricShadingRefreshed.VolumetricShading.Effects;
 
 public class UnderwaterTweaks
 {

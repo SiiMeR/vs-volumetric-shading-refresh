@@ -1,7 +1,7 @@
 using HarmonyLib;
 using Vintagestory.Client.NoObf;
 
-namespace volumetricshadingupdated.VolumetricShading;
+namespace VolumetricShadingRefreshed.VolumetricShading;
 
 [HarmonyPatch]
 internal class IceAndGlassPatches

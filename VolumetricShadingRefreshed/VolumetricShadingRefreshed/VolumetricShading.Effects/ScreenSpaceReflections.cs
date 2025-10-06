@@ -7,9 +7,9 @@ using Vintagestory.API.Common;
 using Vintagestory.API.MathTools;
 using Vintagestory.API.Util;
 using Vintagestory.Client.NoObf;
-using volumetricshadingupdated.VolumetricShading.Patch;
+using VolumetricShadingRefreshed.VolumetricShading.Patch;
 
-namespace volumetricshadingupdated.VolumetricShading.Effects;
+namespace VolumetricShadingRefreshed.VolumetricShading.Effects;
 
 public class ScreenSpaceReflections : IRenderer, IDisposable
 {

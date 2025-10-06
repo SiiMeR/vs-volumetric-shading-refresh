@@ -5,7 +5,7 @@ using System.Reflection.Emit;
 using HarmonyLib;
 using Vintagestory.Client.NoObf;
 
-namespace volumetricshadingupdated.VolumetricShading;
+namespace VolumetricShadingRefreshed.VolumetricShading;
 
 /// <summary>
 ///     Injects Volumetric-Shading callbacks into the two sun draw passes.

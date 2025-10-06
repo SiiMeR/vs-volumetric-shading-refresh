@@ -6,7 +6,7 @@ using HarmonyLib;
 using Vintagestory.API.Client;
 using Vintagestory.Client.NoObf;
 
-namespace volumetricshadingupdated.VolumetricShading;
+namespace VolumetricShadingRefreshed.VolumetricShading;
 
 [HarmonyPatch(typeof(SystemRenderShadowMap), "OnRenderShadowNear")]
 internal static class SystemRenderShadowMapPatches

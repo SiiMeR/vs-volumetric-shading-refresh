@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Vintagestory.API.Client;
 
-namespace volumetricshadingupdated.VolumetricShading.Patch;
+namespace VolumetricShadingRefreshed.VolumetricShading.Patch;
 
 public class ShaderPatcher
 {

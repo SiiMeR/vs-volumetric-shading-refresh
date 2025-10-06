@@ -3,7 +3,7 @@ using OpenTK.Graphics.OpenGL;
 using Vintagestory.API.Client;
 using Vintagestory.Client.NoObf;
 
-namespace volumetricshadingupdated.VolumetricShading;
+namespace VolumetricShadingRefreshed.VolumetricShading;
 
 public static class Framebuffers
 {

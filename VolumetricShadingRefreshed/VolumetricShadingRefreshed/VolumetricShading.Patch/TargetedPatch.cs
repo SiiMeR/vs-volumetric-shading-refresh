@@ -1,6 +1,6 @@
 using System;
 
-namespace volumetricshadingupdated.VolumetricShading.Patch;
+namespace VolumetricShadingRefreshed.VolumetricShading.Patch;
 
 public abstract class TargetedPatch : IShaderPatch
 {

@@ -1,6 +1,6 @@
 using System.Globalization;
 
-namespace volumetricshadingupdated.VolumetricShading.Patch;
+namespace VolumetricShadingRefreshed.VolumetricShading.Patch;
 
 public class FloatValueShaderProperty : ValueShaderProperty
 {

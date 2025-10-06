@@ -4,7 +4,7 @@ using System.Linq;
 using Vintagestory.API.Client;
 using Vintagestory.API.Common;
 
-namespace volumetricshadingupdated.VolumetricShading.Gui;
+namespace VolumetricShadingRefreshed.VolumetricShading.Gui;
 
 public abstract class AdvancedOptionsDialog : GuiDialog
 {

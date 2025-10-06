@@ -5,7 +5,7 @@ using Vintagestory.API.Common;
 using YamlDotNet.Serialization;
 using YamlDotNet.Serialization.NamingConventions;
 
-namespace volumetricshadingupdated.VolumetricShading.Patch;
+namespace VolumetricShadingRefreshed.VolumetricShading.Patch;
 
 public class YamlPatchLoader
 {

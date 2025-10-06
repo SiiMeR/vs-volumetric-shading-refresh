@@ -1,4 +1,4 @@
-namespace volumetricshadingupdated.VolumetricShading.Effects;
+namespace VolumetricShadingRefreshed.VolumetricShading.Effects;
 
 public enum EnumSSRShaders
 {

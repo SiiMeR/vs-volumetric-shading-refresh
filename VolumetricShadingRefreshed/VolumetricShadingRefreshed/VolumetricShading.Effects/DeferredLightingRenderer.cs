@@ -1,7 +1,7 @@
 using System;
 using Vintagestory.API.Client;
 
-namespace volumetricshadingupdated.VolumetricShading.Effects;
+namespace VolumetricShadingRefreshed.VolumetricShading.Effects;
 
 public class DeferredLightingRenderer : IRenderer, IDisposable
 {

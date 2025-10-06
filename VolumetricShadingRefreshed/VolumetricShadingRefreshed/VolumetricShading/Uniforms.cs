@@ -2,7 +2,7 @@ using System;
 using Vintagestory.API.Client;
 using Vintagestory.API.MathTools;
 
-namespace volumetricshadingupdated.VolumetricShading;
+namespace VolumetricShadingRefreshed.VolumetricShading;
 
 public class Uniforms : IRenderer, IDisposable
 {

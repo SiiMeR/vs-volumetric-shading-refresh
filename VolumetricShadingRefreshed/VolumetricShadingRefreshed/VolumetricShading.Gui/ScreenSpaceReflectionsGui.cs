@@ -1,6 +1,6 @@
 using Vintagestory.API.Client;
 
-namespace volumetricshadingupdated.VolumetricShading.Gui;
+namespace VolumetricShadingRefreshed.VolumetricShading.Gui;
 
 public class ScreenSpaceReflectionsGui : AdvancedOptionsDialog
 {

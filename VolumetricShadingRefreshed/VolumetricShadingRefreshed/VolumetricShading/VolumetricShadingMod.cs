@@ -3,11 +3,11 @@ using HarmonyLib;
 using Vintagestory.API.Client;
 using Vintagestory.API.Common;
 using Vintagestory.API.Util;
-using volumetricshadingupdated.VolumetricShading.Effects;
-using volumetricshadingupdated.VolumetricShading.Gui;
-using volumetricshadingupdated.VolumetricShading.Patch;
+using VolumetricShadingRefreshed.VolumetricShading.Effects;
+using VolumetricShadingRefreshed.VolumetricShading.Gui;
+using VolumetricShadingRefreshed.VolumetricShading.Patch;
 
-namespace volumetricshadingupdated.VolumetricShading;
+namespace VolumetricShadingRefreshed.VolumetricShading;
 
 public class VolumetricShadingMod : ModSystem
 {

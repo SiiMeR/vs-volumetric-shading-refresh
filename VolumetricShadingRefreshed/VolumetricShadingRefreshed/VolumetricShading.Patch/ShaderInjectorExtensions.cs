@@ -1,4 +1,4 @@
-namespace volumetricshadingupdated.VolumetricShading.Patch;
+namespace VolumetricShadingRefreshed.VolumetricShading.Patch;
 
 public static class ShaderInjectorExtensions
 {

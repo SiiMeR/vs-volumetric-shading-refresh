@@ -1,4 +1,4 @@
-namespace volumetricshadingupdated.VolumetricShading.Patch;
+namespace VolumetricShadingRefreshed.VolumetricShading.Patch;
 
 public class BoolValueShaderProperty : ValueShaderProperty
 {

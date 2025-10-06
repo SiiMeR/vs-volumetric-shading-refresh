@@ -1,7 +1,7 @@
 using Vintagestory.API.Client;
 using Vintagestory.Client.NoObf;
 
-namespace volumetricshadingupdated.VolumetricShading.Gui;
+namespace VolumetricShadingRefreshed.VolumetricShading.Gui;
 
 public class ConfigGui : MainConfigDialog
 {

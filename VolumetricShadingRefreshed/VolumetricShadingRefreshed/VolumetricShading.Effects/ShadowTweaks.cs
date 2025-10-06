@@ -2,9 +2,9 @@ using System.Collections.Generic;
 using OpenTK.Graphics.OpenGL;
 using Vintagestory.API.Client;
 using Vintagestory.Client.NoObf;
-using volumetricshadingupdated.VolumetricShading.Patch;
+using VolumetricShadingRefreshed.VolumetricShading.Patch;
 
-namespace volumetricshadingupdated.VolumetricShading.Effects;
+namespace VolumetricShadingRefreshed.VolumetricShading.Effects;
 
 public class ShadowTweaks
 {
