@@ -12,7 +12,7 @@
     "Gleepy"
   ],
   "description": "Adds multiple shader changes to the game. (unofficial update of an unofficial update of a Continuation)",
-  "version": "1.1.0",
+  "version": "1.1.2",
   "side": "Client",
   "dependencies": {
     "game": ""
