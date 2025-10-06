@@ -50,10 +50,6 @@ internal class IceAndGlassPatches
 
     public static void Tesselate(ref TCTCache vars)
     {
-        //IL_0007: Unknown result type (might be due to invalid IL or missing references)
-        //IL_000e: Invalid comparison between Unknown and I4
-        //IL_0017: Unknown result type (might be due to invalid IL or missing references)
-        //IL_001e: Invalid comparison between Unknown and I4
         if ((int)vars.block.BlockMaterial == 10 || (int)vars.block.BlockMaterial == 14)
         {
             var obj = vars;

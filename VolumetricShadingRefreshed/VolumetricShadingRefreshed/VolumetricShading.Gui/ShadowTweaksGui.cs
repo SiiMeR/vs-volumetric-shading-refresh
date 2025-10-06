@@ -47,7 +47,6 @@ public class ShadowTweaksGui : AdvancedOptionsDialog
         });
     }
 
-    // (get) Token: 0x06000193 RID: 403 RVA: 0x0000346F File Offset: 0x0000166F
     protected override string DialogKey => "vsmodShadowTweaksConfigure";
 
     // (get) Token: 0x06000194 RID: 404 RVA: 0x00003476 File Offset: 0x00001676

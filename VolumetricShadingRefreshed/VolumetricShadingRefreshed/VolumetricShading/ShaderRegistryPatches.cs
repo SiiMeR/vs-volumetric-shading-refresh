@@ -28,7 +28,6 @@ internal class ShaderRegistryPatches
     [HarmonyPostfix]
     public static void LoadShaderPostfix(ShaderProgram program, EnumShaderType shaderType)
     {
-        //IL_000b: Unknown result type (might be due to invalid IL or missing references)
         VolumetricShadingMod.Instance.ShaderInjector.OnShaderLoaded(program, shaderType);
     }
 
@@ -67,12 +66,12 @@ internal class ShaderRegistryPatches
     public static string LoadShaderCallsite(ShaderProgram shader, string code, HashSet<string> filenames,
         EnumShaderType type)
     {
-        //IL_0000: Unknown result type (might be due to invalid IL or missing references)
-        //IL_0006: Invalid comparison between Unknown and I4
-        //IL_0008: Unknown result type (might be due to invalid IL or missing references)
-        //IL_000e: Invalid comparison between Unknown and I4
-        //IL_0010: Unknown result type (might be due to invalid IL or missing references)
-        //IL_0016: Invalid comparison between Unknown and I4
+        
+        
+        
+        
+        
+        
         var text = (int)type == 35632
             ? ".fsh"
             : (int)type == 35633

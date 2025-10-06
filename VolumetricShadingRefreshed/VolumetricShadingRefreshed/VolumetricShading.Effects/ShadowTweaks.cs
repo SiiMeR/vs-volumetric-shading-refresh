@@ -16,8 +16,6 @@ public class ShadowTweaks
 
     public ShadowTweaks(VolumetricShadingMod mod)
     {
-        //IL_01b4: Unknown result type (might be due to invalid IL or missing references)
-        //IL_01be: Expected O, but got Unknown
         _mod = mod;
         ExcludedShaders = new HashSet<string> { "sky", "clouds", "gui", "guigear", "guitopsoil", "texture2texture" };
         _mod.CApi.Settings.AddWatcher("volumetricshading_nearShadowBaseWidth",

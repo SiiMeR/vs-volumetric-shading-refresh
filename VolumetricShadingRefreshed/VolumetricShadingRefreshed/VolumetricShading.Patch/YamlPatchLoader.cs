@@ -38,8 +38,6 @@ public class YamlPatchLoader
 
     public void LoadFromYaml(string yaml)
     {
-        //IL_0061: Unknown result type (might be due to invalid IL or missing references)
-        //IL_006b: Expected O, but got Unknown
         foreach (var item in new DeserializerBuilder().WithNamingConvention(CamelCaseNamingConvention.Instance)
                      .Build().Deserialize<IList<PatchEntry>>(yaml))
         {

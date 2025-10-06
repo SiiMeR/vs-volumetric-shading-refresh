@@ -9,8 +9,6 @@ public static class ReflectionHelper
 {
     public static ClientMain GetClient(this ICoreClientAPI api)
     {
-        //IL_0006: Unknown result type (might be due to invalid IL or missing references)
-        //IL_000c: Expected O, but got Unknown
         return (ClientMain)api.World;
     }
 
@@ -29,8 +27,8 @@ public static class ReflectionHelper
 
     public static ClientPlatformWindows GetClientPlatformWindows(this ClientMain client)
     {
-        //IL_0006: Unknown result type (might be due to invalid IL or missing references)
-        //IL_000c: Expected O, but got Unknown
+        
+        
         return (ClientPlatformWindows)client.GetClientPlatformAbstract();
     }
 
