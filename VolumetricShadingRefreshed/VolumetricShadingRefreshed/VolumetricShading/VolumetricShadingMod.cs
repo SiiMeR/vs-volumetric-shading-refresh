@@ -17,60 +17,46 @@ public class VolumetricShadingMod : ModSystem
 
     public GuiDialog CurrentDialog;
 
-    // (get) Token: 0x060000CF RID: 207 RVA: 0x00002A2B File Offset: 0x00000C2B
-    // (set) Token: 0x060000D0 RID: 208 RVA: 0x00002A32 File Offset: 0x00000C32
+
     public static VolumetricShadingMod Instance { get; private set; }
 
-    // (get) Token: 0x060000D1 RID: 209 RVA: 0x00002A3A File Offset: 0x00000C3A
-    // (set) Token: 0x060000D2 RID: 210 RVA: 0x00002A42 File Offset: 0x00000C42
+
     public ICoreClientAPI CApi { get; private set; }
 
-    // (get) Token: 0x060000D3 RID: 211 RVA: 0x00002A4B File Offset: 0x00000C4B
-    // (set) Token: 0x060000D4 RID: 212 RVA: 0x00002A53 File Offset: 0x00000C53
+
     public Events Events { get; private set; }
 
-    // (get) Token: 0x060000D5 RID: 213 RVA: 0x00002A5C File Offset: 0x00000C5C
-    // (set) Token: 0x060000D6 RID: 214 RVA: 0x00002A64 File Offset: 0x00000C64
+
     public Uniforms Uniforms { get; private set; }
 
-    // (get) Token: 0x060000D7 RID: 215 RVA: 0x00002A6D File Offset: 0x00000C6D
-    // (set) Token: 0x060000D8 RID: 216 RVA: 0x00002A75 File Offset: 0x00000C75
+
     public bool Debug { get; private set; }
 
-    // (get) Token: 0x060000D9 RID: 217 RVA: 0x00002A7E File Offset: 0x00000C7E
-    // (set) Token: 0x060000DA RID: 218 RVA: 0x00002A86 File Offset: 0x00000C86
+
     public ShaderPatcher ShaderPatcher { get; private set; }
 
-    // (get) Token: 0x060000DB RID: 219 RVA: 0x00002A8F File Offset: 0x00000C8F
-    // (set) Token: 0x060000DC RID: 220 RVA: 0x00002A97 File Offset: 0x00000C97
+
     public ShaderInjector ShaderInjector { get; private set; }
 
-    // (get) Token: 0x060000DD RID: 221 RVA: 0x00002AA0 File Offset: 0x00000CA0
-    // (set) Token: 0x060000DE RID: 222 RVA: 0x00002AA8 File Offset: 0x00000CA8
+
     public ScreenSpaceReflections ScreenSpaceReflections { get; private set; }
 
-    // (get) Token: 0x060000DF RID: 223 RVA: 0x00002AB1 File Offset: 0x00000CB1
-    // (set) Token: 0x060000E0 RID: 224 RVA: 0x00002AB9 File Offset: 0x00000CB9
+
     public VolumetricLighting VolumetricLighting { get; private set; }
 
-    // (get) Token: 0x060000E1 RID: 225 RVA: 0x00002AC2 File Offset: 0x00000CC2
-    // (set) Token: 0x060000E2 RID: 226 RVA: 0x00002ACA File Offset: 0x00000CCA
+
     public OverexposureEffect OverexposureEffect { get; private set; }
 
-    // (get) Token: 0x060000E3 RID: 227 RVA: 0x00002AD3 File Offset: 0x00000CD3
-    // (set) Token: 0x060000E4 RID: 228 RVA: 0x00002ADB File Offset: 0x00000CDB
+
     public ScreenSpaceDirectionalOcclusion ScreenSpaceDirectionalOcclusion { get; private set; }
 
-    // (get) Token: 0x060000E5 RID: 229 RVA: 0x00002AE4 File Offset: 0x00000CE4
-    // (set) Token: 0x060000E6 RID: 230 RVA: 0x00002AEC File Offset: 0x00000CEC
+
     public ShadowTweaks ShadowTweaks { get; private set; }
 
-    // (get) Token: 0x060000E7 RID: 231 RVA: 0x00002AF5 File Offset: 0x00000CF5
-    // (set) Token: 0x060000E8 RID: 232 RVA: 0x00002AFD File Offset: 0x00000CFD
+
     public DeferredLighting DeferredLighting { get; private set; }
 
-    // (get) Token: 0x060000E9 RID: 233 RVA: 0x00002B06 File Offset: 0x00000D06
-    // (set) Token: 0x060000EA RID: 234 RVA: 0x00002B0E File Offset: 0x00000D0E
+
     public UnderwaterTweaks UnderwaterTweaks { get; private set; }
 
     public override bool ShouldLoad(EnumAppSide forSide)

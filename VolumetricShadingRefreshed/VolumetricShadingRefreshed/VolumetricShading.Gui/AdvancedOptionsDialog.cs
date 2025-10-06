@@ -17,13 +17,13 @@ public abstract class AdvancedOptionsDialog : GuiDialog
     {
     }
 
-    // (get) Token: 0x06000162 RID: 354
+
     protected abstract string DialogKey { get; }
 
-    // (get) Token: 0x06000163 RID: 355
+
     protected abstract string DialogTitle { get; }
 
-    // (get) Token: 0x06000166 RID: 358 RVA: 0x000030E1 File Offset: 0x000012E1
+
     public override string ToggleKeyCombinationCode => null;
 
     protected void RegisterOption(ConfigOption option)

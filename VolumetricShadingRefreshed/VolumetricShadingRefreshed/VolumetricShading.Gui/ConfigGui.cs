@@ -63,7 +63,7 @@ public class ConfigGui : MainConfigDialog
         capi.Settings.AddWatcher<int>("godRays", delegate { RefreshValues(); });
     }
 
-    // (get) Token: 0x06000173 RID: 371 RVA: 0x0000315C File Offset: 0x0000135C
+
     public override string ToggleKeyCombinationCode => "volumetriclightingconfigure";
 
     protected override void RefreshValues()

@@ -49,7 +49,7 @@ public class ShadowTweaksGui : AdvancedOptionsDialog
 
     protected override string DialogKey => "vsmodShadowTweaksConfigure";
 
-    // (get) Token: 0x06000194 RID: 404 RVA: 0x00003476 File Offset: 0x00001676
+
     protected override string DialogTitle => "Shadow Tweaks";
 
     protected override void RefreshValues()

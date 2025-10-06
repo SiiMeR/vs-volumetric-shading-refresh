@@ -126,10 +126,10 @@ public class ScreenSpaceReflections : IRenderer, IDisposable
         _screenQuad = null;
     }
 
-    // (get) Token: 0x060001D5 RID: 469 RVA: 0x0000358C File Offset: 0x0000178C
+
     public double RenderOrder => 1.0;
 
-    // (get) Token: 0x060001D6 RID: 470 RVA: 0x00002A24 File Offset: 0x00000C24
+
     public int RenderRange => int.MaxValue;
 
     private void RegeneratePatches()

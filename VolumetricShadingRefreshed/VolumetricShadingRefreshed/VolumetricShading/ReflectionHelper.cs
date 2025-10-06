@@ -27,8 +27,6 @@ public static class ReflectionHelper
 
     public static ClientPlatformWindows GetClientPlatformWindows(this ClientMain client)
     {
-        
-        
         return (ClientPlatformWindows)client.GetClientPlatformAbstract();
     }
 

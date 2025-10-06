@@ -66,12 +66,6 @@ internal class ShaderRegistryPatches
     public static string LoadShaderCallsite(ShaderProgram shader, string code, HashSet<string> filenames,
         EnumShaderType type)
     {
-        
-        
-        
-        
-        
-        
         var text = (int)type == 35632
             ? ".fsh"
             : (int)type == 35633

@@ -24,10 +24,10 @@ public class OverexposureGui : AdvancedOptionsDialog
         });
     }
 
-    // (get) Token: 0x06000180 RID: 384 RVA: 0x000032F5 File Offset: 0x000014F5
+
     protected override string DialogKey => "vsmodOverexposureConfigure";
 
-    // (get) Token: 0x06000181 RID: 385 RVA: 0x000032FC File Offset: 0x000014FC
+
     protected override string DialogTitle => "Overexposure Options";
 
     protected override void RefreshValues()

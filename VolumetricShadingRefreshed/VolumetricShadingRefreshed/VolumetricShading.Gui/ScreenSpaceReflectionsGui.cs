@@ -71,10 +71,10 @@ public class ScreenSpaceReflectionsGui : AdvancedOptionsDialog
         });
     }
 
-    // (get) Token: 0x06000186 RID: 390 RVA: 0x00003326 File Offset: 0x00001526
+
     protected override string DialogKey => "vsmodSSRConfigure";
 
-    // (get) Token: 0x06000187 RID: 391 RVA: 0x0000332D File Offset: 0x0000152D
+
     protected override string DialogTitle => "Screen Space Reflections Options";
 
     protected override void RefreshValues()

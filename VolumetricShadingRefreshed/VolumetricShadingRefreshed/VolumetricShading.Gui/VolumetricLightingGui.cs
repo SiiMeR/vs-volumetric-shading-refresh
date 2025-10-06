@@ -30,10 +30,10 @@ public class VolumetricLightingGui : AdvancedOptionsDialog
         });
     }
 
-    // (get) Token: 0x0600019C RID: 412 RVA: 0x000034ED File Offset: 0x000016ED
+
     protected override string DialogKey => "vsmodVolumetricLightingConfigure";
 
-    // (get) Token: 0x0600019D RID: 413 RVA: 0x000034F4 File Offset: 0x000016F4
+
     protected override string DialogTitle => "Volumetric Lighting Options";
 
     protected override void RefreshValues()
