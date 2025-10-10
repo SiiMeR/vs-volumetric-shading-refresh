@@ -33,10 +33,6 @@ public class ScreenSpaceReflections : IRenderer, IDisposable
 
     private bool _enabled;
 
-    private int _fbHeight;
-
-    private int _fbWidth;
-
     private float _rainAccumulator;
 
     private bool _rainEnabled;
@@ -91,7 +87,7 @@ public class ScreenSpaceReflections : IRenderer, IDisposable
             _chunkRenderer = _game.GetChunkRenderer();
         }
 
-        /* Keeping this here temporarily (also the ones above) just so if any unseen concequences do occurr it'll be easy to fix (hopefully) 
+        /* Keeping this here temporarily (also the ones above) just so if any unseen concequences do occurr it'll be easy to fix (hopefully)
         if (stage == EnumRenderStage.Opaque)
         {
             OnPreRender(deltaTime);
@@ -108,9 +104,9 @@ public class ScreenSpaceReflections : IRenderer, IDisposable
         if (stage == EnumRenderStage.AfterOIT)
         {
             OnPreRender(deltaTime);
-            OnRenderSsrChunks(); 
+            OnRenderSsrChunks();
             OnRenderSsrOut();
-        } 
+        }
     }
 
     public void Dispose()
@@ -240,9 +236,12 @@ public class ScreenSpaceReflections : IRenderer, IDisposable
             }
         }
 
-        _fbWidth = (int)(_platform.window.Bounds.Size.X * ClientSettings.SSAA);
-        _fbHeight = (int)(_platform.window.Bounds.Size.Y * ClientSettings.SSAA);
-        if (_fbWidth == 0 || _fbHeight == 0)
+        var fbPrimary = mainBuffers[0];
+
+        var fbWidth = fbPrimary.Width;
+        var fbHeight = fbPrimary.Height;
+
+        if (fbWidth == 0 || fbHeight == 0)
         {
             return;
         }
@@ -250,8 +249,8 @@ public class ScreenSpaceReflections : IRenderer, IDisposable
         var framebuffer = new FrameBufferRef
         {
             FboId = GL.GenFramebuffer(),
-            Width = _fbWidth,
-            Height = _fbHeight,
+            Width = fbWidth,
+            Height = fbHeight,
             DepthTextureId = GL.GenTexture()
         };
         GL.BindFramebuffer(FramebufferTarget.Framebuffer, framebuffer.FboId);
@@ -290,8 +289,8 @@ public class ScreenSpaceReflections : IRenderer, IDisposable
         framebuffer = new FrameBufferRef
         {
             FboId = GL.GenFramebuffer(),
-            Width = _fbWidth,
-            Height = _fbHeight
+            Width = fbWidth,
+            Height = fbHeight
         };
         GL.BindFramebuffer(FramebufferTarget.Framebuffer, framebuffer.FboId);
         framebuffer.ColorTextureIds = new[] { GL.GenTexture() };
@@ -304,8 +303,8 @@ public class ScreenSpaceReflections : IRenderer, IDisposable
             framebuffer = new FrameBufferRef
             {
                 FboId = GL.GenFramebuffer(),
-                Width = _fbWidth,
-                Height = _fbHeight
+                Width = fbWidth,
+                Height = fbHeight
             };
             GL.BindFramebuffer(FramebufferTarget.Framebuffer, framebuffer.FboId);
             framebuffer.ColorTextureIds = new[] { GL.GenTexture() };
@@ -447,7 +446,8 @@ public class ScreenSpaceReflections : IRenderer, IDisposable
         GL.BindFramebuffer(FramebufferTarget.ReadFramebuffer, primaryBuffer.FboId);
         GL.BindFramebuffer(FramebufferTarget.DrawFramebuffer, ssrFB.FboId);
         GL.Clear(ClearBufferMask.DepthBufferBit);
-        GL.BlitFramebuffer(0, 0, primaryBuffer.Width, primaryBuffer.Height, 0, 0, _fbWidth, _fbHeight,
+        GL.BlitFramebuffer(0, 0, primaryBuffer.Width, primaryBuffer.Height, 0, 0, primaryBuffer.Width,
+            primaryBuffer.Height,
             ClearBufferMask.DepthBufferBit, BlitFramebufferFilter.Nearest);
         _platform.LoadFrameBuffer(ssrFB);
         GL.ClearBuffer(ClearBuffer.Color, 0, new[] { 0f, 0f, 0f, 1f });

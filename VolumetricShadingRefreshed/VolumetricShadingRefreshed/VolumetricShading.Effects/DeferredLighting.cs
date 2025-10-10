@@ -88,7 +88,6 @@ public class DeferredLighting
 
         var fbPrimary = mainBuffers[0];
 
-        // Dont need to * ClientSettings.SSAA as fbPrimary is created by the engine (mainBuffers[0]) meaning it *SHOULD* alr include ssaa.
         var fbWidth = fbPrimary.Width;
         var fbHeight = fbPrimary.Height;
 
