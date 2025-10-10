@@ -47,8 +47,8 @@
         totalNear = 1.0 - vsmod_pcss(shadowCoordsNear.xyz);
     }
     #else
-    float totalNear = 0.0;
-
+    float totalNear = 9.0;
+    
 - type: token
   filename: fogandlight.fsh
   tokens: totalNear /= 9.0;

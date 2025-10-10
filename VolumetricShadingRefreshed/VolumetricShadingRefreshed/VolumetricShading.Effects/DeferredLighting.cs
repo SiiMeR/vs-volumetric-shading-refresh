@@ -88,8 +88,10 @@ public class DeferredLighting
 
         var fbPrimary = mainBuffers[0];
 
-        var fbWidth = (int)(fbPrimary.Width * ClientSettings.SSAA);
-        var fbHeight = (int)(fbPrimary.Height * ClientSettings.SSAA);
+        // Dont need to * ClientSettings.SSAA as fbPrimary is created by the engine (mainBuffers[0]) meaning it *SHOULD* alr include ssaa.
+        var fbWidth = fbPrimary.Width;
+        var fbHeight = fbPrimary.Height;
+
         if (fbWidth == 0 || fbHeight == 0)
         {
             return;
@@ -132,6 +134,8 @@ public class DeferredLighting
         }
 
         _platform.LoadFrameBuffer(_frameBuffer);
+        // Ensures that the viewport matches the deferred FBO size :)
+        GL.Viewport(0, 0, _frameBuffer.Width, _frameBuffer.Height);
         GL.Clear(ClearBufferMask.DepthBufferBit | ClearBufferMask.ColorBufferBit);
     }
 
@@ -143,13 +147,17 @@ public class DeferredLighting
         }
 
         _platform.LoadFrameBuffer(EnumFrameBuffer.Primary);
+
+        var fbPrimary = _platform.FrameBuffers[0];
+        // Ensure viewport matches the primary FBO size to hopefully avoid lower-left rendering.
+        GL.Viewport(0, 0, fbPrimary.Width, fbPrimary.Height);
+
         GL.ClearBuffer(ClearBuffer.Color, 0, new[] { 0f, 0f, 0f, 1f });
         GL.ClearBuffer(ClearBuffer.Color, 1, new[] { 0f, 0f, 0f, 1f });
         var render = _mod.CApi.Render;
         var uniforms = render.ShaderUniforms;
         var myUniforms = _mod.Uniforms;
         var fb = _frameBuffer;
-        var fbPrimary = _platform.FrameBuffers[0];
         _platform.GlDisableDepthTest();
         _platform.GlToggleBlend(false);
         GL.DrawBuffers(2, new[]
