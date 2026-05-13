@@ -45,13 +45,22 @@
   tokens: if (glitchStrength > 0) texColor = applyRustEffect(texColor, normal, vertexPosition + vec3(seed), 0);
   content: |
     if (glitchStrength > 0) texColor = applyRustEffect(texColor, normal, vertexPosition + vec3(seed), 0);
-    texColor *= color;
-    texColor.rgb *= b;
     float glow = 0.0;
+
+- type: regex
+  filename: entityanimated.fsh
+  regex: 'float\s+murkiness\s*=\s*getUnderwaterMurkiness\(\);\s*if\s*\(murkiness\s*>\s*0\)\s*\{[^}]*\}\s*else\s*\{[^}]*\}'
+  content: |
     #if VSMOD_DEFERREDLIGHTING > 0
     outColor = texColor;
     #else
-    outColor = applyOverexposedFogAndShadow(texColor, fogAmount, normal, 1.0, intensity, worldPos.xyz, fogDensityIn, glow);
+    float murkiness = getUnderwaterMurkiness();
+    if (murkiness > 0) {
+    	outColor = applyOverexposedFogAndShadow(texColor, 0, normal, 1.0, intensity, worldPos.xyz, fogDensityIn, glow);
+    	outColor.rgb = applyUnderwaterEffects(outColor.rgb, murkiness);
+    } else {
+    	outColor = applyOverexposedFogAndShadow(texColor, fogAmount, normal, 1.0, intensity, worldPos.xyz, fogDensityIn, glow);
+    }
     #endif
 
 - type: token
