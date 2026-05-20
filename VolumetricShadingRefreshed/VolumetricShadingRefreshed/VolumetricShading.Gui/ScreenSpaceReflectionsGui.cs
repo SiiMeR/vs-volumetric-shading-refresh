@@ -74,6 +74,22 @@ public class ScreenSpaceReflectionsGui : AdvancedOptionsDialog
             SlideAction = OnSkyMixinSliderChanged,
             InstantSlider = true
         });
+        RegisterOption(new ConfigOption
+        {
+            SliderKey = "strengthSlider",
+            Text = "Reflection strength",
+            Tooltip = "Overall visibility of reflections. Lower values make water less shiny",
+            SlideAction = OnStrengthSliderChanged,
+            InstantSlider = true
+        });
+        RegisterOption(new ConfigOption
+        {
+            SliderKey = "distortionSlider",
+            Text = "Surface distortion",
+            Tooltip = "How much waves distort the reflection. Hides SSR artifacts and makes water feel less like polished glass",
+            SlideAction = OnDistortionSliderChanged,
+            InstantSlider = true
+        });
     }
 
 
@@ -95,6 +111,8 @@ public class ScreenSpaceReflectionsGui : AdvancedOptionsDialog
         SingleComposer.GetSlider("skyMixinSlider").SetValues(ModSettings.SSRSkyMixin, 0, 100, 1);
         SingleComposer.GetSlider("splashTransparencySlider")
             .SetValues(ModSettings.SSRSplashTransparency, 0, 100, 1);
+        SingleComposer.GetSlider("strengthSlider").SetValues(ModSettings.SSRStrength, 0, 100, 1);
+        SingleComposer.GetSlider("distortionSlider").SetValues(ModSettings.SSRDistortion, 0, 100, 1);
     }
 
     private void ToggleSSR(bool on)
@@ -154,6 +172,18 @@ public class ScreenSpaceReflectionsGui : AdvancedOptionsDialog
     private bool OnSkyMixinSliderChanged(int value)
     {
         ModSettings.SSRSkyMixin = value;
+        return true;
+    }
+
+    private bool OnStrengthSliderChanged(int value)
+    {
+        ModSettings.SSRStrength = value;
+        return true;
+    }
+
+    private bool OnDistortionSliderChanged(int value)
+    {
+        ModSettings.SSRDistortion = value;
         return true;
     }
 }

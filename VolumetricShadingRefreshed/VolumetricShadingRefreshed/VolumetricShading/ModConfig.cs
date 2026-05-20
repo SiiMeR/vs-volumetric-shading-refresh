@@ -11,6 +11,8 @@ public class ModConfig
     public int SSRReflectionDimming { get; set; } = 110;
     public int SSRTintInfluence { get; set; } = 35;
     public int SSRSkyMixin { get; set; } = 10;
+    public int SSRDistortion { get; set; } = 30;
+    public int SSRStrength { get; set; } = 100;
 
     public int VolumetricLightingFlatness { get; set; } = 120;
     public int VolumetricLightingIntensity { get; set; } = 30;

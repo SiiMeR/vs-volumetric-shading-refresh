@@ -70,6 +70,18 @@ public static class ModSettings
         set { _config.SSRSkyMixin = value; Save(); }
     }
 
+    public static int SSRDistortion
+    {
+        get => _config.SSRDistortion;
+        set { _config.SSRDistortion = value; Save(); }
+    }
+
+    public static int SSRStrength
+    {
+        get => _config.SSRStrength;
+        set { _config.SSRStrength = value; Save(); }
+    }
+
     public static int VolumetricLightingFlatness
     {
         get => _config.VolumetricLightingFlatness;

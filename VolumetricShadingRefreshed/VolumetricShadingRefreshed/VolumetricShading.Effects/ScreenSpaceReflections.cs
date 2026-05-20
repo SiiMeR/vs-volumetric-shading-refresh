@@ -345,6 +345,10 @@ public class ScreenSpaceReflections : IRenderer, IDisposable
         shader.Uniform("vsmod_ssrReflectionDimming", ModSettings.SSRReflectionDimming * 0.01f);
         shader.Uniform("vsmod_ssrTintInfluence", ModSettings.SSRTintInfluence * 0.01f);
         shader.Uniform("vsmod_ssrSkyMixin", ModSettings.SSRSkyMixin * 0.01f);
+        shader.Uniform("vsmod_ssrDistortion", (float)ModSettings.SSRDistortion);
+        shader.Uniform("vsmod_ssrStrength", ModSettings.SSRStrength * 0.01f);
+        shader.Uniform("waterWaveCounter", _platform.ShaderUniforms.WaterWaveCounter);
+        shader.Uniform("playerPos", uniforms.PlayerPos);
         _platform.RenderFullscreenTriangle(_screenQuad);
         shader.Stop();
         _platform.CheckGlError("Error while calculating SSR");

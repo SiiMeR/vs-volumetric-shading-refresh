@@ -20,6 +20,10 @@ uniform float horizonFog;
 uniform float fogDensityIn;
 uniform float fogMinIn;
 uniform vec4 rgbaFog;
+uniform float vsmod_ssrDistortion;
+uniform float vsmod_ssrStrength;
+uniform float waterWaveCounter;
+uniform vec3 playerPos;
 
 in vec2 texcoord;
 out vec4 outColor;
@@ -31,9 +35,19 @@ out vec4 outColor;
 
 float comp = 1.0-zNear/zFar/zFar;
 
-const int maxf = 7;//number of refinements
-const float ref = 0.11;//refinement multiplier
-const float inc = 3.0;//increasement factor at each step
+const float ref = 0.11;
+const float inc = 3.0;
+
+float ssrNoise(vec2 p) {
+    vec2 i = floor(p);
+    vec2 f = fract(p);
+    f = f * f * (3.0 - 2.0 * f);
+    float a = fract(sin(dot(i,              vec2(127.1, 311.7))) * 43758.5453);
+    float b = fract(sin(dot(i + vec2(1, 0), vec2(127.1, 311.7))) * 43758.5453);
+    float c = fract(sin(dot(i + vec2(0, 1), vec2(127.1, 311.7))) * 43758.5453);
+    float d = fract(sin(dot(i + vec2(1, 1), vec2(127.1, 311.7))) * 43758.5453);
+    return mix(mix(a, b, f.x), mix(c, d, f.x), f.y) * 2.0 - 1.0;
+}
 
 vec3 nvec3(vec4 pos) {
     return pos.xyz/pos.w;
@@ -45,19 +59,19 @@ float cdist(vec2 coord) {
     return max(abs(coord.s-0.5), abs(coord.t-0.5))*2.0;
 }
 
-vec4 raytrace(vec3 fragpos, vec3 rvector) {
+vec4 raytrace(vec3 fragpos, vec3 rvector, float jitter) {
     vec4 color = vec4(0.0);
     vec3 start = fragpos;
     rvector *= 1.2;
-    fragpos += rvector;
-    vec3 tvector = rvector;
+    fragpos += rvector * (1.0 + jitter);
+    vec3 tvector = rvector * (1.0 + jitter);
     int sr = 0;
 
     bool hit = false;
     vec3 hitFragpos0 = vec3(0);
     vec3 hitPos = vec3(0);
 
-    for (int i = 0; i < 25; ++i) {
+    for (int i = 0; i < 10; ++i) {
         vec3 pos = nvec3(projectionMatrix * nvec4(fragpos)) * 0.5 + 0.5;
         if (pos.x < 0 || pos.x > 1 || pos.y < 0 || pos.y > 1 || pos.z < 0 || pos.z > 1.0) break;
         vec3 fragpos0 = vec3(pos.st, texture(gDepth, pos.st).r);
@@ -70,7 +84,7 @@ vec4 raytrace(vec3 fragpos, vec3 rvector) {
             hitPos = pos;
             sr++;
 
-            if (sr >= maxf){
+            if (sr >= 1){
                 break;
             }
 
@@ -108,7 +122,20 @@ void main(void) {
             return;
         }
 
-        vec4 reflection = raytrace(positionFrom.xyz, pivot);
+        vec4 worldPos = invModelViewMatrix * positionFrom;
+        float jitter = fract(sin(dot(worldPos.xz, vec2(12.9898, 78.233))) * 43758.5453);
+
+        float distAmt = vsmod_ssrDistortion * 0.002;
+        float t = waterWaveCounter * 0.3;
+        vec2 wp = worldPos.xz + playerPos.xz;
+        float dnx = ssrNoise(vec2(wp.x * 4.0 - t, wp.y * 4.0))
+                  + ssrNoise(vec2(wp.x * 1.7 + 3.1, wp.y * 1.7 - t * 0.7)) * 0.5;
+        float dnz = ssrNoise(vec2(wp.y * 4.0 + 8.3, wp.x * 4.0 + t))
+                  + ssrNoise(vec2(wp.y * 1.7 - 2.4, wp.x * 1.7 + t * 0.7)) * 0.5;
+        vec3 distortedNormal = normalize(normal + vec3(dnx, 0.0, dnz) * distAmt);
+        pivot = normalize(reflect(unitPositionFrom, distortedNormal));
+
+        vec4 reflection = raytrace(positionFrom.xyz, pivot, jitter);
         vec4 skyColor = vec4(0);
         vec4 outGlow = vec4(0);
 
@@ -134,7 +161,7 @@ void main(void) {
         float fogLevel = getFogLevelDeferred(length(positionFrom), fogMinIn, fogDensityIn, positionFromWorldSpace.y);
         outColor = applyFog(outColor, fogLevel);
 
-        outColor.a *= (1.0f - positionFrom.w) * fresnel;
+        outColor.a *= (1.0f - positionFrom.w) * fresnel * vsmod_ssrStrength;
     }
 
     //outColor.rgb = normal;

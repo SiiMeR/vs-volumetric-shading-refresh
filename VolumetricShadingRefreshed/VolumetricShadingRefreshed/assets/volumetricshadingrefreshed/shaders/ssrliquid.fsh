@@ -110,34 +110,16 @@ void main()
     float div = ((waterFlags & LiquidWeakWaveBitMask) > 0) ? 90 : 5; //Half triangle bug occurred due to not using latest water bitmaps
     //float noise = generateNoise(worldPos.xyz + playerpos.xyz, div, wind);
 
-    mat3 tbn = cotangentFrame(worldNormal, worldPos.xyz, uv);
-    mat3 invTbn = transpose(tbn);
-
-    //vec3 normalMap = vec3(noise, noise, 0.0f);
-    vec3 normalMap = vec3(0);
-    //generateNoiseBump(normalMap, div);
-    vec3 parallaxPos;
-    vec3 viewTangent = normalize(invTbn * (worldPos.xyz - cameraWorldPosition.xyz));
-    generateNoiseParallax(normalMap, viewTangent, div, parallaxPos);
-
-    if (dropletIntensity > 0.001) {
-        //generateSplash(fragWorldPos.xyz);
-        generateSplashBump(normalMap, parallaxPos);
-    }
-
-    vec3 worldNormalMap = tbn * normalMap;
-    vec3 camNormalMap = (modelViewMatrix * vec4(worldNormalMap, 0.0)).xyz;
     vec3 myGNormal = gnormal.xyz;
 
     if (dot(gnormal.xyz, fragPosition.xyz) > 0) {
-        // flip the normal if viewed from behind
         myGNormal = -gnormal.xyz;
     }
 
     outGPosition = vec4(fragPosition.xyz, 0);
-    outGNormal = vec4(normalize(camNormalMap*2 + myGNormal), 1.0 - playerUnderwater * caustics);
+    outGNormal = vec4(myGNormal, 1.0 - playerUnderwater * caustics);
     outTint = vec4(getColorMapped(terrainTex, vec4(1)).rgb, 0);
     #if VSMOD_REFRACT > 0
-    outRefraction = vec4((-camNormalMap.xy*1.2) / fragPosition.z, 0, 0);
+    outRefraction = vec4(0);
     #endif
 }
