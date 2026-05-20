@@ -25,19 +25,11 @@ public class ScreenSpaceReflections : IRenderer, IDisposable
 
     private readonly FieldInfo _textureIdsField;
 
-    private bool _causticsEnabled;
-
     private ChunkRenderer _chunkRenderer;
 
     private float _currentRain;
 
-    private bool _enabled;
-
     private float _rainAccumulator;
-
-    private bool _rainEnabled;
-
-    private bool _refractionsEnabled;
 
     private MeshRef _screenQuad;
 
@@ -52,23 +44,13 @@ public class ScreenSpaceReflections : IRenderer, IDisposable
         mod.CApi.Event.ReloadShader += ReloadShaders;
         mod.Events.PreFinalRender += OnSetFinalUniforms;
         mod.ShaderPatcher.OnReload += RegeneratePatches;
-        _enabled = ModSettings.ScreenSpaceReflectionsEnabled;
-        _rainEnabled = ModSettings.SSRRainReflectionsEnabled;
-        _refractionsEnabled = ModSettings.SSRRefractionsEnabled;
-        _causticsEnabled = ModSettings.SSRCausticsEnabled;
-        mod.CApi.Settings.AddWatcher("volumetricshading_screenSpaceReflections",
-            new OnSettingsChanged<bool>(OnEnabledChanged));
-        mod.CApi.Settings.AddWatcher("volumetricshading_SSRRainReflections",
-            new OnSettingsChanged<bool>(OnRainReflectionsChanged));
-        mod.CApi.Settings.AddWatcher("volumetricshading_SSRRefractions",
-            new OnSettingsChanged<bool>(OnRefractionsChanged));
-        mod.CApi.Settings.AddWatcher("volumetricshading_SSRCaustics", new OnSettingsChanged<bool>(OnCausticsChanged));
 
         //mod.CApi.Event.RegisterRenderer(this, EnumRenderStage.Opaque, "ssrWorldSpace");
         //mod.CApi.Event.RegisterRenderer(this, EnumRenderStage.AfterOIT, "ssrOut");
 
         // Doing this so Both ssr passes are done afterOIT (the main scene)(it includes mobs/entities, should fix the water in boat bug)
         mod.CApi.Event.RegisterRenderer(this, EnumRenderStage.AfterOIT, "ssr");
+        mod.Events.PostUseShader += OnPostUseShader;
 
         _textureIdsField = typeof(ChunkRenderer).GetField("textureIds", BindingFlags.Instance | BindingFlags.Public);
         mod.Events.RebuildFramebuffers += SetupFramebuffers;
@@ -77,7 +59,7 @@ public class ScreenSpaceReflections : IRenderer, IDisposable
 
     public void OnRenderFrame(float deltaTime, EnumRenderStage stage)
     {
-        if (!_enabled)
+        if (!ModSettings.ScreenSpaceReflectionsEnabled)
         {
             return;
         }
@@ -168,36 +150,16 @@ public class ScreenSpaceReflections : IRenderer, IDisposable
     {
         var shaderInjector = _mod.ShaderInjector;
         shaderInjector.RegisterBoolProperty("VSMOD_SSR", () => ModSettings.ScreenSpaceReflectionsEnabled);
-        shaderInjector.RegisterFloatProperty("VSMOD_SSR_WATER_TRANSPARENCY",
-            () => (100 - ModSettings.SSRWaterTransparency) * 0.01f);
-        shaderInjector.RegisterFloatProperty("VSMOD_SSR_SPLASH_TRANSPARENCY",
-            () => (100 - ModSettings.SSRSplashTransparency) * 0.01f);
-        shaderInjector.RegisterFloatProperty("VSMOD_SSR_REFLECTION_DIMMING",
-            () => ModSettings.SSRReflectionDimming * 0.01f);
-        shaderInjector.RegisterFloatProperty("VSMOD_SSR_TINT_INFLUENCE", () => ModSettings.SSRTintInfluence * 0.01f);
-        shaderInjector.RegisterFloatProperty("VSMOD_SSR_SKY_MIXIN", () => ModSettings.SSRSkyMixin * 0.01f);
         shaderInjector.RegisterBoolProperty("VSMOD_REFRACT", () => ModSettings.SSRRefractionsEnabled);
         shaderInjector.RegisterBoolProperty("VSMOD_CAUSTICS", () => ModSettings.SSRCausticsEnabled);
     }
 
-    private void OnEnabledChanged(bool enabled)
+    private void OnPostUseShader(ShaderProgramBase shader)
     {
-        _enabled = enabled;
-    }
-
-    private void OnRainReflectionsChanged(bool enabled)
-    {
-        _rainEnabled = enabled;
-    }
-
-    private void OnRefractionsChanged(bool enabled)
-    {
-        _refractionsEnabled = enabled;
-    }
-
-    private void OnCausticsChanged(bool enabled)
-    {
-        _causticsEnabled = enabled;
+        if (!ModSettings.ScreenSpaceReflectionsEnabled || shader.PassName != "chunkliquid")
+            return;
+        shader.Uniform("vsmod_ssrWaterTransparency", (100 - ModSettings.SSRWaterTransparency) * 0.01f);
+        shader.Uniform("vsmod_ssrSplashTransparency", (100 - ModSettings.SSRSplashTransparency) * 0.01f);
     }
 
     private bool ReloadShaders()
@@ -255,16 +217,16 @@ public class ScreenSpaceReflections : IRenderer, IDisposable
         };
         GL.BindFramebuffer(FramebufferTarget.Framebuffer, framebuffer.FboId);
         framebuffer.SetupDepthTexture();
-        framebuffer.ColorTextureIds = ArrayUtil.CreateFilled(_refractionsEnabled ? 4 : 3, _ => GL.GenTexture());
+        framebuffer.ColorTextureIds = ArrayUtil.CreateFilled(ModSettings.SSRRefractionsEnabled ? 4 : 3, _ => GL.GenTexture());
         framebuffer.SetupVertexTexture(0);
         framebuffer.SetupVertexTexture(1);
         framebuffer.SetupColorTexture(2);
-        if (_refractionsEnabled)
+        if (ModSettings.SSRRefractionsEnabled)
         {
             framebuffer.SetupVertexTexture(3);
         }
 
-        if (_refractionsEnabled)
+        if (ModSettings.SSRRefractionsEnabled)
         {
             GL.DrawBuffers(4, new[]
             {
@@ -298,7 +260,7 @@ public class ScreenSpaceReflections : IRenderer, IDisposable
         GL.DrawBuffer(DrawBufferMode.ColorAttachment0);
         Framebuffers.CheckStatus();
         _framebuffers[1] = framebuffer;
-        if (_causticsEnabled)
+        if (ModSettings.SSRCausticsEnabled)
         {
             framebuffer = new FrameBufferRef
             {
@@ -380,10 +342,13 @@ public class ScreenSpaceReflections : IRenderer, IDisposable
         shader.Uniform("fogDensityIn", ambient.BlendedFogDensity);
         shader.Uniform("fogMinIn", ambient.BlendedFogMin);
         shader.Uniform("rgbaFog", ambient.BlendedFogColor);
+        shader.Uniform("vsmod_ssrReflectionDimming", ModSettings.SSRReflectionDimming * 0.01f);
+        shader.Uniform("vsmod_ssrTintInfluence", ModSettings.SSRTintInfluence * 0.01f);
+        shader.Uniform("vsmod_ssrSkyMixin", ModSettings.SSRSkyMixin * 0.01f);
         _platform.RenderFullscreenTriangle(_screenQuad);
         shader.Stop();
         _platform.CheckGlError("Error while calculating SSR");
-        if (_causticsEnabled && ssrCausticsFB != null && ssrCausticsShader != null)
+        if (ModSettings.SSRCausticsEnabled && ssrCausticsFB != null && ssrCausticsShader != null)
         {
             _platform.LoadFrameBuffer(ssrCausticsFB);
             GL.ClearBuffer(ClearBuffer.Color, 0, new[] { 0.5f });
@@ -453,7 +418,7 @@ public class ScreenSpaceReflections : IRenderer, IDisposable
         GL.ClearBuffer(ClearBuffer.Color, 0, new[] { 0f, 0f, 0f, 1f });
         GL.ClearBuffer(ClearBuffer.Color, 1, new[] { 0f, 0f, 0f, playerUnderwater });
         GL.ClearBuffer(ClearBuffer.Color, 2, new[] { 0f, 0f, 0f, 1f });
-        if (_refractionsEnabled)
+        if (ModSettings.SSRRefractionsEnabled)
         {
             GL.ClearBuffer(ClearBuffer.Color, 3, new[] { 0f, 0f, 0f, 1f });
         }
@@ -484,7 +449,7 @@ public class ScreenSpaceReflections : IRenderer, IDisposable
         shader.Stop();
         GL.BindSampler(0, 0);
         GL.BindSampler(1, 0);
-        if (_rainEnabled)
+        if (ModSettings.SSRRainReflectionsEnabled)
         {
             shader = _shaders[3];
             shader.Use();
@@ -546,7 +511,7 @@ public class ScreenSpaceReflections : IRenderer, IDisposable
         var ssrOutFB = _framebuffers[1];
         var ssrFB = _framebuffers[0];
         var causticsFB = _framebuffers[2];
-        if (!_enabled)
+        if (!ModSettings.ScreenSpaceReflectionsEnabled)
         {
             return;
         }
@@ -557,19 +522,19 @@ public class ScreenSpaceReflections : IRenderer, IDisposable
         }
 
         final.BindTexture2D("ssrScene", ssrOutFB.ColorTextureIds[0]);
-        if ((_refractionsEnabled || _causticsEnabled) && ssrFB != null)
+        if ((ModSettings.SSRRefractionsEnabled || ModSettings.SSRCausticsEnabled) && ssrFB != null)
         {
             final.UniformMatrix("projectionMatrix", _mod.CApi.Render.CurrentProjectionMatrix);
             final.BindTexture2D("gpositionScene", ssrFB.ColorTextureIds[0]);
             final.BindTexture2D("gdepthScene", _platform.FrameBuffers[0].DepthTextureId);
         }
 
-        if (_refractionsEnabled && ssrFB != null)
+        if (ModSettings.SSRRefractionsEnabled && ssrFB != null)
         {
             final.BindTexture2D("refractionScene", ssrFB.ColorTextureIds[3]);
         }
 
-        if (_causticsEnabled && causticsFB != null)
+        if (ModSettings.SSRCausticsEnabled && causticsFB != null)
         {
             final.BindTexture2D("causticsScene", causticsFB.ColorTextureIds[0]);
         }

@@ -13,8 +13,6 @@ public class DeferredLighting
 
     private readonly ClientPlatformWindows _platform;
 
-    private bool _enabled;
-
     private FrameBufferRef _frameBuffer;
 
     private MeshRef _screenQuad;
@@ -25,34 +23,21 @@ public class DeferredLighting
     {
         _mod = mod;
         _platform = _mod.CApi.GetClientPlatformWindows();
-        _mod.CApi.Settings.AddWatcher("volumetricshading_deferredLighting",
-            new OnSettingsChanged<bool>(OnDeferredLightingChanged));
-        _mod.CApi.Settings.AddWatcher("ssaoQuality",
-            new OnSettingsChanged<int>(OnSSAOQualityChanged));
-        _enabled = ModSettings.DeferredLightingEnabled;
+        _mod.CApi.Settings.AddWatcher("ssaoQuality", new OnSettingsChanged<int>(OnSSAOQualityChanged));
+        _mod.ShaderInjector.RegisterBoolProperty("VSMOD_DEFERREDLIGHTING", () => ModSettings.DeferredLightingEnabled);
+        _mod.CApi.Event.ReloadShader += OnReloadShaders;
+        _mod.Events.RebuildFramebuffers += SetupFramebuffers;
         _mod.CApi.Event.RegisterRenderer(new DeferredLightingPreparer(this), EnumRenderStage.Opaque,
             "vsmod-deferred-lighting-prepare");
         _mod.CApi.Event.RegisterRenderer(new DeferredLightingRenderer(this), EnumRenderStage.Opaque,
             "vsmod-deferred-lighting");
-        _mod.ShaderInjector.RegisterBoolProperty("VSMOD_DEFERREDLIGHTING", () => _enabled);
-        _mod.CApi.Event.ReloadShader += OnReloadShaders;
-        _mod.Events.RebuildFramebuffers += SetupFramebuffers;
 
         SetupFramebuffers(_platform.FrameBuffers);
     }
 
-    private void OnDeferredLightingChanged(bool enabled)
-    {
-        _enabled = enabled;
-        if (enabled && ClientSettings.SSAOQuality == 0)
-        {
-            ClientSettings.SSAOQuality = 1;
-        }
-    }
-
     private void OnSSAOQualityChanged(int quality)
     {
-        if (quality == 0 && _enabled)
+        if (quality == 0 && ModSettings.DeferredLightingEnabled)
         {
             ModSettings.DeferredLightingEnabled = false;
             _platform.RebuildFrameBuffers();
@@ -81,10 +66,8 @@ public class DeferredLighting
             _frameBuffer = null;
         }
 
-        if (ClientSettings.SSAOQuality <= 0 || !_enabled)
-        {
+        if (ClientSettings.SSAOQuality <= 0 || !ModSettings.DeferredLightingEnabled)
             return;
-        }
 
         var fbPrimary = mainBuffers[0];
 
@@ -92,9 +75,7 @@ public class DeferredLighting
         var fbHeight = fbPrimary.Height;
 
         if (fbWidth == 0 || fbHeight == 0)
-        {
             return;
-        }
 
         var frameBufferRef = new FrameBufferRef
         {
@@ -128,12 +109,9 @@ public class DeferredLighting
     public void OnBeginRender()
     {
         if (_frameBuffer == null)
-        {
             return;
-        }
 
         _platform.LoadFrameBuffer(_frameBuffer);
-        // Ensures that the viewport matches the deferred FBO size :)
         GL.Viewport(0, 0, _frameBuffer.Width, _frameBuffer.Height);
         GL.Clear(ClearBufferMask.DepthBufferBit | ClearBufferMask.ColorBufferBit);
     }
@@ -141,14 +119,11 @@ public class DeferredLighting
     public void OnEndRender()
     {
         if (_frameBuffer == null)
-        {
             return;
-        }
 
         _platform.LoadFrameBuffer(EnumFrameBuffer.Primary);
 
         var fbPrimary = _platform.FrameBuffers[0];
-        // Ensure viewport matches the primary FBO size to hopefully avoid lower-left rendering.
         GL.Viewport(0, 0, fbPrimary.Width, fbPrimary.Height);
 
         GL.ClearBuffer(ClearBuffer.Color, 0, new[] { 0f, 0f, 0f, 1f });

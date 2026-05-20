@@ -10,33 +10,19 @@ public class ShadowTweaks
 {
     private readonly VolumetricShadingMod _mod;
 
-    private int _softShadowSamples;
-
-    private bool _softShadowsEnabled;
-
     public ShadowTweaks(VolumetricShadingMod mod)
     {
         _mod = mod;
         ExcludedShaders = new HashSet<string> { "sky", "clouds", "gui", "guigear", "guitopsoil", "texture2texture" };
-        _mod.CApi.Settings.AddWatcher("volumetricshading_nearShadowBaseWidth",
-            (OnSettingsChanged<int>)OnNearShadowBaseWidthChanged);
-        _mod.CApi.Settings.AddWatcher("volumetricshading_softShadows",
-            (OnSettingsChanged<bool>)OnSoftShadowsChanged);
-        _mod.CApi.Settings.AddWatcher("volumetricshading_softShadowSamples",
-            (OnSettingsChanged<int>)OnSoftShadowSamplesChanged);
-        NearShadowBaseWidth = ModSettings.NearShadowBaseWidth;
-        _softShadowsEnabled = ModSettings.SoftShadowsEnabled;
-        _softShadowSamples = ModSettings.SoftShadowSamples;
-        _mod.ShaderInjector.RegisterFloatProperty("VSMOD_NEARSHADOWOFFSET",
-            () => ModSettings.NearPeterPanningAdjustment);
+        _mod.ShaderInjector.RegisterFloatProperty("VSMOD_NEARSHADOWOFFSET", () => ModSettings.NearPeterPanningAdjustment);
         _mod.ShaderInjector.RegisterFloatProperty("VSMOD_FARSHADOWOFFSET", () => ModSettings.FarPeterPanningAdjustment);
-        _mod.ShaderInjector.RegisterBoolProperty("VSMOD_SOFTSHADOWS", () => _softShadowsEnabled);
-        _mod.ShaderInjector.RegisterIntProperty("VSMOD_SOFTSHADOWSAMPLES", () => _softShadowSamples);
+        _mod.ShaderInjector.RegisterBoolProperty("VSMOD_SOFTSHADOWS", () => ModSettings.SoftShadowsEnabled);
+        _mod.ShaderInjector.RegisterIntProperty("VSMOD_SOFTSHADOWSAMPLES", () => ModSettings.SoftShadowSamples);
         _mod.CApi.Event.ReloadShader += OnReloadShaders;
         _mod.Events.PostUseShader += OnUseShader;
     }
 
-    public int NearShadowBaseWidth { get; private set; }
+    public int NearShadowBaseWidth => ModSettings.NearShadowBaseWidth;
 
     public ISet<string> ExcludedShaders { get; }
 
@@ -45,28 +31,13 @@ public class ShadowTweaks
         return true;
     }
 
-    private void OnNearShadowBaseWidthChanged(int newVal)
-    {
-        NearShadowBaseWidth = newVal;
-    }
-
-    private void OnSoftShadowsChanged(bool enabled)
-    {
-        _softShadowsEnabled = enabled;
-    }
-
-    private void OnSoftShadowSamplesChanged(int samples)
-    {
-        _softShadowSamples = samples;
-    }
-
     private void OnUseShader(ShaderProgramBase shader)
     {
-        if (!_softShadowsEnabled || !shader.includes.Contains("fogandlight.fsh") ||
-            ExcludedShaders.Contains(shader.PassName) || ShaderProgramBase.shadowmapQuality <= 0)
-        {
+        if (!shader.includes.Contains("fogandlight.fsh") || ShaderProgramBase.shadowmapQuality <= 0)
             return;
-        }
+
+        if (!ModSettings.SoftShadowsEnabled || ExcludedShaders.Contains(shader.PassName))
+            return;
 
         if (!shader.customSamplers.ContainsKey("shadowMapFarTex"))
         {

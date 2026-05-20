@@ -79,6 +79,13 @@ internal class PlatformPatches
         VolumetricShadingMod.Instance.Events.EmitPreFinalRender(final);
     }
 
+    [HarmonyPatch("RenderFinalComposition")]
+    [HarmonyPostfix]
+    public static void RenderFinalCompositionPostfix()
+    {
+        VolumetricShadingMod.Instance?.Events.EmitPostFinalRender();
+    }
+
     [HarmonyPatch("SetupDefaultFrameBuffers")]
     [HarmonyPostfix]
     public static void SetupDefaultFrameBuffersPostfix(List<FrameBufferRef> __result)

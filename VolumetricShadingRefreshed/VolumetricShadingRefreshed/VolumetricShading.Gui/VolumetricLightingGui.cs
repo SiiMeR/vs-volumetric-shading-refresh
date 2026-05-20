@@ -19,7 +19,8 @@ public class VolumetricLightingGui : AdvancedOptionsDialog
             SliderKey = "intensitySlider",
             Text = "Intensity",
             Tooltip = "The intensity of the Volumetric Lighting effect",
-            SlideAction = OnIntensitySliderChanged
+            SlideAction = OnIntensitySliderChanged,
+            InstantSlider = true
         });
         RegisterOption(new ConfigOption
         {
@@ -66,15 +67,12 @@ public class VolumetricLightingGui : AdvancedOptionsDialog
     {
         ModSettings.VolumetricLightingFlatness = value;
         capi.Shader.ReloadShaders();
-        RefreshValues();
         return true;
     }
 
     private bool OnIntensitySliderChanged(int value)
     {
         ModSettings.VolumetricLightingIntensity = value;
-        capi.Shader.ReloadShaders();
-        RefreshValues();
         return true;
     }
 }

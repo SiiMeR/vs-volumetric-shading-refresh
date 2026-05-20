@@ -17,6 +17,8 @@ public class Events
 
     public event Action<ShaderProgramBase> PostUseShader;
 
+    public event Action PostFinalRender;
+
     public event Action PostWaterChangeSight;
 
     public void EmitRebuildFramebuffers(List<FrameBufferRef> framebuffers)
@@ -42,6 +44,11 @@ public class Events
     public void EmitPostUseShader(ShaderProgramBase shader)
     {
         PostUseShader?.Invoke(shader);
+    }
+
+    public void EmitPostFinalRender()
+    {
+        PostFinalRender?.Invoke();
     }
 
     public void EmitPostWaterChangeSight()

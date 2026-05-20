@@ -8,6 +8,9 @@ uniform sampler2D gTint;
 uniform sampler2D gDepth;
 
 uniform mat4 projectionMatrix;
+uniform float vsmod_ssrReflectionDimming;
+uniform float vsmod_ssrTintInfluence;
+uniform float vsmod_ssrSkyMixin;
 uniform mat4 invProjectionMatrix;
 uniform mat4 invModelViewMatrix;
 
@@ -80,7 +83,7 @@ vec4 raytrace(vec3 fragpos, vec3 rvector) {
     }
 
     if (hit) {
-        color = pow(texture(primaryScene, hitPos.st), vec4(VSMOD_SSR_REFLECTION_DIMMING));
+        color = pow(texture(primaryScene, hitPos.st), vec4(vsmod_ssrReflectionDimming));
         color.a = clamp(1.0 - pow(cdist(hitPos.st), 20.0), 0.0, 1.0);
     }
 
@@ -114,8 +117,8 @@ void main(void) {
 
         pivot = (invModelViewMatrix * vec4(pivot, 0.0)).xyz;
         getSkyColorAt(pivot, sunPosition, 0.0, clamp(dayLight, 0, 1), horizonFog, skyColor, outGlow);
-        skyColor.rgb = pow(skyColor.rgb, vec3(VSMOD_SSR_REFLECTION_DIMMING));
-        reflection.rgb = mix(reflection.rgb, skyColor.rgb, VSMOD_SSR_SKY_MIXIN * upness);
+        skyColor.rgb = pow(skyColor.rgb, vec3(vsmod_ssrReflectionDimming));
+        reflection.rgb = mix(reflection.rgb, skyColor.rgb, vsmod_ssrSkyMixin * upness);
         reflection.rgb = mix(skyColor.rgb * upness, reflection.rgb, reflection.a);
 
         float normalDotEye = dot(normal, unitPositionFrom);
@@ -125,7 +128,7 @@ void main(void) {
         outColor = reflection;
         outColor.a = 1.0f;
 
-        outColor.rgb *= pow(texture(gTint, texcoord).rgb, vec3(VSMOD_SSR_TINT_INFLUENCE));
+        outColor.rgb *= pow(texture(gTint, texcoord).rgb, vec3(vsmod_ssrTintInfluence));
 
         vec4 positionFromWorldSpace = invModelViewMatrix * vec4(positionFrom.xyz, 1.0);
         float fogLevel = getFogLevelDeferred(length(positionFrom), fogMinIn, fogDensityIn, positionFromWorldSpace.y);

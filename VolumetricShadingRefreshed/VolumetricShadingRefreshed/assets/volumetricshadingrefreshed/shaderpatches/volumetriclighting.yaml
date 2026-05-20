@@ -6,7 +6,7 @@
     in vec4 shadowLightPos;
     in float sunlightLevel;
     #endif
-    
+
     #define VOLUMETRIC_SSAO_DECLINE 0.5f
 
 - type: start
@@ -46,7 +46,7 @@
 - type: token
   filename: celestialobject.fsh
   tokens: vec4(glowLevel, extraGodray, 0, texColor.a);
-  content: vec4(glowLevel, 0.2f, 0, texColor.a);
+  content: vec4(glowLevel, 0.2f * dayLight, 0, texColor.a);
 
 - type: token
   filename: chunkliquid.fsh
@@ -211,12 +211,7 @@
 - type: token
   filename: entityanimated.fsh
   tokens: vec4(glowLevel + glow, 0, 0, color.a);
-  content: "\n
-    #if SHADOWQUALITY > 0\n
-    vec4(glowLevel + glow, scatterAmt, blockBrightness, color.a);\n
-    #else\n
-    vec4(glowLevel + glow, scatterAmt, 0, color.a);\n
-    #endif\n"
+  content: "vec4(glowLevel + glow, scatterAmt, 0, color.a);"
 
 - type: start
   filename: entityanimated.vsh

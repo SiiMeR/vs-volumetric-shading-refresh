@@ -59,6 +59,9 @@ public class VolumetricShadingMod : ModSystem
 
     public UnderwaterTweaks UnderwaterTweaks { get; private set; }
 
+
+    public DepthOfField DepthOfField { get; private set; }
+
     public override bool ShouldLoad(EnumAppSide forSide)
     {
         return forSide == EnumAppSide.Client;
@@ -78,7 +81,7 @@ public class VolumetricShadingMod : ModSystem
             return;
         }
 
-        SetConfigDefaults();
+        ModSettings.Init(clientApi);
         Instance = this;
         CApi = clientApi;
         Events = new Events();
@@ -98,6 +101,7 @@ public class VolumetricShadingMod : ModSystem
         ShadowTweaks = new ShadowTweaks(this);
         DeferredLighting = new DeferredLighting(this);
         UnderwaterTweaks = new UnderwaterTweaks(this);
+        DepthOfField = new DepthOfField(this);
         ShaderInjector.Debug = Debug;
     }
 
@@ -120,89 +124,6 @@ public class VolumetricShadingMod : ModSystem
         }
 
         ShaderPatcher.Reload();
-    }
-
-    private static void SetConfigDefaults()
-    {
-        if (ModSettings.VolumetricLightingFlatness == 0)
-        {
-            ModSettings.VolumetricLightingFlatness = 120;
-        }
-
-        if (ModSettings.VolumetricLightingIntensity == 0)
-        {
-            ModSettings.VolumetricLightingIntensity = 30;
-        }
-
-        if (!ModSettings.SSRWaterTransparencySet)
-        {
-            ModSettings.SSRWaterTransparency = 25;
-        }
-
-        if (ModSettings.SSRReflectionDimming == 0)
-        {
-            ModSettings.SSRReflectionDimming = 110;
-        }
-
-        if (!ModSettings.SSRTintInfluenceSet)
-        {
-            ModSettings.SSRTintInfluence = 35;
-        }
-
-        if (!ModSettings.SSRSkyMixinSet)
-        {
-            ModSettings.SSRSkyMixin = 10;
-        }
-
-        if (!ModSettings.SSRSplashTransparencySet)
-        {
-            ModSettings.SSRSplashTransparency = 55;
-        }
-
-        if (ModSettings.NearShadowBaseWidth == 0)
-        {
-            ModSettings.NearShadowBaseWidth = 15;
-        }
-
-        if (ModSettings.SoftShadowSamples == 0)
-        {
-            ModSettings.SoftShadowSamples = 16;
-        }
-
-        if (!ModSettings.NearPeterPanningAdjustmentSet)
-        {
-            ModSettings.NearPeterPanningAdjustment = 2;
-        }
-
-        if (!ModSettings.FarPeterPanningAdjustmentSet)
-        {
-            ModSettings.FarPeterPanningAdjustment = 5;
-        }
-
-        if (!ModSettings.SSRRainReflectionsEnabledSet)
-        {
-            ModSettings.SSRRainReflectionsEnabled = true;
-        }
-
-        if (!ModSettings.SSRRefractionsEnabledSet)
-        {
-            ModSettings.SSRRefractionsEnabled = true;
-        }
-
-        if (!ModSettings.SSRCausticsEnabledSet)
-        {
-            ModSettings.SSRCausticsEnabled = true;
-        }
-
-        if (!ModSettings.UnderwaterTweaksEnabledSet)
-        {
-            ModSettings.UnderwaterTweaksEnabled = true;
-        }
-
-        if (!ModSettings.DeferredLightingEnabledSet)
-        {
-            ModSettings.DeferredLightingEnabled = false;
-        }
     }
 
     private bool OnConfigurePressed(KeyCombination cb)
@@ -230,6 +151,7 @@ public class VolumetricShadingMod : ModSystem
         }
 
         ShadowTweaks.Dispose();
+        DepthOfField?.Dispose();
         var harmony = _harmony;
         if (harmony != null)
         {

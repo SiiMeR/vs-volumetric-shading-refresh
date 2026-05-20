@@ -59,6 +59,14 @@ public class ConfigGui : MainConfigDialog
             Tooltip = "Replaces SSAO with SSDO. Results in marginally faster and better looking occlusions.",
             ToggleAction = ToggleSSDO
         });
+        RegisterOption(new ConfigOption
+        {
+            SwitchKey = "toggleDoF",
+            Text = "Depth of Field",
+            Tooltip = "Simulates camera lens blur for out-of-focus objects",
+            ToggleAction = ToggleDepthOfField,
+            AdvancedAction = OnDepthOfFieldAdvancedClicked
+        });
         SetupDialog();
         capi.Settings.AddWatcher<int>("godRays", delegate { RefreshValues(); });
     }
@@ -79,17 +87,21 @@ public class ConfigGui : MainConfigDialog
         SingleComposer.GetSwitch("toggleOverexposure").On = ModSettings.OverexposureIntensity > 0;
         SingleComposer.GetSwitch("toggleUnderwater").On = ModSettings.UnderwaterTweaksEnabled;
         SingleComposer.GetSwitch("toggleDeferred").On = ModSettings.DeferredLightingEnabled;
+        SingleComposer.GetSwitch("toggleDoF").On = ModSettings.DepthOfFieldEnabled;
     }
 
     private void ToggleUnderwater(bool enabled)
     {
         ModSettings.UnderwaterTweaksEnabled = enabled;
+        VolumetricShadingMod.Instance.UnderwaterTweaks.SetEnabled(enabled);
         RefreshValues();
     }
 
     private void ToggleDeferredLighting(bool enabled)
     {
         ModSettings.DeferredLightingEnabled = enabled;
+        if (enabled && ClientSettings.SSAOQuality == 0)
+            ClientSettings.SSAOQuality = 1;
         capi.GetClientPlatformAbstract().RebuildFrameBuffers();
         capi.Shader.ReloadShaders();
         RefreshValues();
@@ -168,6 +180,21 @@ public class ConfigGui : MainConfigDialog
     {
         TryClose();
         new ShadowTweaksGui(capi).TryOpen();
+        return true;
+    }
+
+    private void ToggleDepthOfField(bool on)
+    {
+        ModSettings.DepthOfFieldEnabled = on;
+        capi.GetClientPlatformAbstract().RebuildFrameBuffers();
+        capi.Shader.ReloadShaders();
+        RefreshValues();
+    }
+
+    private bool OnDepthOfFieldAdvancedClicked()
+    {
+        TryClose();
+        new DepthOfFieldGui(capi).TryOpen();
         return true;
     }
 }

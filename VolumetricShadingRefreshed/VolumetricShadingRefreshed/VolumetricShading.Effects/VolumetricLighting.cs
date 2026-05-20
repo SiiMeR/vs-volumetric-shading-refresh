@@ -30,14 +30,8 @@ public class VolumetricLighting
 
     private void RegisterPatches()
     {
-        var shaderInjector = _mod.ShaderInjector;
-        shaderInjector.RegisterFloatProperty("VOLUMETRIC_FLATNESS", delegate
-        {
-            var volumetricLightingFlatness = ModSettings.VolumetricLightingFlatness;
-            return (200 - volumetricLightingFlatness) * 0.01f;
-        });
-        shaderInjector.RegisterFloatProperty("VOLUMETRIC_INTENSITY",
-            () => ModSettings.VolumetricLightingIntensity * 0.01f);
+        _mod.ShaderInjector.RegisterFloatProperty("VOLUMETRIC_FLATNESS",
+            () => (200 - ModSettings.VolumetricLightingFlatness) * 0.01f);
     }
 
     private static void OnShadowMapChanged(int quality)
@@ -60,6 +54,11 @@ public class VolumetricLighting
 
     public void OnSetGodrayUniforms(ShaderProgramGodrays rays)
     {
+        var platform = _mod.CApi.GetClientPlatformWindows();
+        var fbPrimary = platform.FrameBuffers[0];
+        if (fbPrimary?.DepthTextureId > 0)
+            rays.BindTexture2D("depthTexture", fbPrimary.DepthTextureId, 2);
+
         var calendar = _mod.CApi.World.Calendar;
         var ambient = _mod.CApi.Ambient;
         _ = _mod.CApi.Render.ShaderUniforms;
@@ -73,6 +72,7 @@ public class VolumetricLighting
 
         var num = (float)obj;
         var eyesInWaterDepth = _game.playerProperties.EyesInWaterDepth;
+        rays.Uniform("vsmod_volumetricIntensity", ModSettings.VolumetricLightingIntensity * 0.01f);
         rays.Uniform("moonLightStrength", calendar.MoonLightStrength);
         rays.Uniform("sunLightStrength", calendar.SunLightStrength);
         rays.Uniform("dayLightStrength", calendar.DayLightStrength);
@@ -86,9 +86,8 @@ public class VolumetricLighting
 
     private void OnPostUseShader(ShaderProgramBase shader)
     {
-        if (_enabled && shader.includes.Contains("shadowcoords.vsh"))
-        {
-            shader.Uniform("cameraWorldPosition", _mod.Uniforms.CameraWorldPosition);
-        }
+        if (!_enabled || !shader.includes.Contains("shadowcoords.vsh"))
+            return;
+        shader.Uniform("cameraWorldPosition", _mod.Uniforms.CameraWorldPosition);
     }
 }

@@ -39,35 +39,40 @@ public class ScreenSpaceReflectionsGui : AdvancedOptionsDialog
             SliderKey = "dimmingSlider",
             Text = "Reflection dimming",
             Tooltip = "The dimming effect strength on the reflected image",
-            SlideAction = OnDimmingSliderChanged
+            SlideAction = OnDimmingSliderChanged,
+            InstantSlider = true
         });
         RegisterOption(new ConfigOption
         {
             SliderKey = "transparencySlider",
             Text = "Water transparency",
             Tooltip = "Sets the transparency of the vanilla water effect",
-            SlideAction = OnTransparencySliderChanged
+            SlideAction = OnTransparencySliderChanged,
+            InstantSlider = true
         });
         RegisterOption(new ConfigOption
         {
             SliderKey = "splashTransparencySlider",
             Text = "Splash transparency",
             Tooltip = "The strength of the vanilla splash effect",
-            SlideAction = OnSplashTransparencySliderChanged
+            SlideAction = OnSplashTransparencySliderChanged,
+            InstantSlider = true
         });
         RegisterOption(new ConfigOption
         {
             SliderKey = "tintSlider",
             Text = "Tint influence",
             Tooltip = "Sets the influence an object's tint has on it's reflection color",
-            SlideAction = OnTintSliderChanged
+            SlideAction = OnTintSliderChanged,
+            InstantSlider = true
         });
         RegisterOption(new ConfigOption
         {
             SliderKey = "skyMixinSlider",
             Text = "Sky mixin",
             Tooltip = "The amount of sky color that is always visible, even when fully reflecting",
-            SlideAction = OnSkyMixinSliderChanged
+            SlideAction = OnSkyMixinSliderChanged,
+            InstantSlider = true
         });
     }
 
@@ -125,40 +130,30 @@ public class ScreenSpaceReflectionsGui : AdvancedOptionsDialog
     private bool OnDimmingSliderChanged(int value)
     {
         ModSettings.SSRReflectionDimming = value;
-        capi.Shader.ReloadShaders();
-        RefreshValues();
         return true;
     }
 
     private bool OnTransparencySliderChanged(int value)
     {
         ModSettings.SSRWaterTransparency = value;
-        capi.Shader.ReloadShaders();
-        RefreshValues();
         return true;
     }
 
     private bool OnSplashTransparencySliderChanged(int value)
     {
         ModSettings.SSRSplashTransparency = value;
-        capi.Shader.ReloadShaders();
-        RefreshValues();
         return true;
     }
 
     private bool OnTintSliderChanged(int value)
     {
         ModSettings.SSRTintInfluence = value;
-        capi.Shader.ReloadShaders();
-        RefreshValues();
         return true;
     }
 
     private bool OnSkyMixinSliderChanged(int value)
     {
         ModSettings.SSRSkyMixin = value;
-        capi.Shader.ReloadShaders();
-        RefreshValues();
         return true;
     }
 }

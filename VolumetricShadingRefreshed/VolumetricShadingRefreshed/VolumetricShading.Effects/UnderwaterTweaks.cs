@@ -20,12 +20,11 @@ public class UnderwaterTweaks
     public UnderwaterTweaks(VolumetricShadingMod mod)
     {
         _mod = mod;
-        mod.CApi.Settings.AddWatcher("volumetricshading_underwaterTweaks", (OnSettingsChanged<bool>)SetEnabled);
         SetEnabled(ModSettings.UnderwaterTweaksEnabled);
         mod.Events.PostWaterChangeSight += OnWaterModifierChanged;
     }
 
-    private void SetEnabled(bool enabled)
+    public void SetEnabled(bool enabled)
     {
         if (enabled && !_enabled)
         {
