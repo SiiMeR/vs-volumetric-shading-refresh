@@ -33,11 +33,6 @@ out vec4 outColor;
 #include skycolor.fsh
 #include deferredfogandlight.fsh
 
-float comp = 1.0-zNear/zFar/zFar;
-
-const float ref = 0.11;
-const float inc = 3.0;
-
 float ssrNoise(vec2 p) {
     vec2 i = floor(p);
     vec2 f = fract(p);
@@ -63,42 +58,57 @@ vec4 raytrace(vec3 fragpos, vec3 rvector, float jitter) {
     vec4 color = vec4(0.0);
     vec3 start = fragpos;
     rvector *= 1.2;
-    fragpos += rvector * (1.0 + jitter);
-    vec3 tvector = rvector * (1.0 + jitter);
-    int sr = 0;
+
+    vec3 tvec = rvector * (1.0 + jitter);
+    vec3 marchPos = start + tvec;
+    vec3 prevPos = start;
 
     bool hit = false;
-    vec3 hitFragpos0 = vec3(0);
-    vec3 hitPos = vec3(0);
+    vec3 hitScreenPos = vec3(0);
 
-    for (int i = 0; i < 10; ++i) {
-        vec3 pos = nvec3(projectionMatrix * nvec4(fragpos)) * 0.5 + 0.5;
-        if (pos.x < 0 || pos.x > 1 || pos.y < 0 || pos.y > 1 || pos.z < 0 || pos.z > 1.0) break;
-        vec3 fragpos0 = vec3(pos.st, texture(gDepth, pos.st).r);
-        fragpos0 = nvec3(invProjectionMatrix * nvec4(fragpos0 * 2.0 - 1.0));
-        float err = distance(fragpos, fragpos0);
-        bool isFurther = fragpos0.z < start.z;
-        if (err < pow(length(rvector), 1.175) && isFurther) {
+    for (int i = 0; i < 30; ++i) {
+        vec3 screenPos = nvec3(projectionMatrix * nvec4(marchPos)) * 0.5 + 0.5;
+        if (screenPos.x < 0.0 || screenPos.x > 1.0 || screenPos.y < 0.0 || screenPos.y > 1.0 || screenPos.z < 0.0 || screenPos.z > 1.0) break;
+
+        vec3 scenePos = nvec3(invProjectionMatrix * nvec4(vec3(screenPos.st, texture(gDepth, screenPos.st).r) * 2.0 - 1.0));
+        bool isFurther = scenePos.z < start.z;
+        float stepLen = length(marchPos - prevPos);
+        float err = distance(marchPos, scenePos);
+
+        if (err < pow(stepLen, 1.175) && isFurther) {
             hit = true;
-            hitFragpos0 = fragpos0;
-            hitPos = pos;
-            sr++;
+            hitScreenPos = screenPos;
 
-            if (sr >= 1){
-                break;
+            vec3 lo = prevPos;
+            vec3 hi = marchPos;
+            for (int j = 0; j < 8; ++j) {
+                vec3 mid = (lo + hi) * 0.5;
+                vec3 midScreen = nvec3(projectionMatrix * nvec4(mid)) * 0.5 + 0.5;
+                vec3 midScene = nvec3(invProjectionMatrix * nvec4(vec3(midScreen.st, texture(gDepth, midScreen.st).r) * 2.0 - 1.0));
+                float midErr = distance(mid, midScene);
+                float midThick = pow(length(hi - lo) * 0.5, 1.175);
+
+                if (midErr < midThick && midScene.z < start.z) {
+                    hi = mid;
+                    hitScreenPos = midScreen;
+                } else {
+                    lo = mid;
+                }
             }
-
-            tvector -= rvector;
-            rvector *= ref;
+            break;
         }
-        rvector *= inc;
-        tvector += rvector;
-        fragpos = start + tvector;
+
+        prevPos = marchPos;
+        rvector *= 1.5;
+        tvec += rvector;
+        marchPos = start + tvec;
     }
 
     if (hit) {
-        color = pow(texture(primaryScene, hitPos.st), vec4(vsmod_ssrReflectionDimming));
-        color.a = clamp(1.0 - pow(cdist(hitPos.st), 20.0), 0.0, 1.0);
+        color = pow(texture(primaryScene, hitScreenPos.st), vec4(vsmod_ssrReflectionDimming));
+        float edgeFade = 1.0 - smoothstep(0.6, 1.0, cdist(hitScreenPos.st));
+        float distFade = 1.0 - clamp(length(marchPos - start) / 80.0, 0.0, 1.0);
+        color.a = edgeFade * distFade;
     }
 
     return color;
@@ -164,6 +174,4 @@ void main(void) {
         outColor.a *= (1.0f - positionFrom.w) * fresnel * vsmod_ssrStrength;
     }
 
-    //outColor.rgb = normal;
-    //outColor.a = 1;
 }
